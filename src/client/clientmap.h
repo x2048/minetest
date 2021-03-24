@@ -86,14 +86,20 @@ public:
 
 	void updateCamera(const v3f &pos, const v3f &dir, f32 fov, const v3s16 &offset)
 	{
-		v3s16 previous_block = getContainerPos(floatToInt(m_camera_position + intToFloat(m_camera_offset, BS), BS), MAP_BLOCKSIZE);
+		v3s16 previous_node = floatToInt(m_camera_position + intToFloat(m_camera_offset, BS), BS);
+		v3s16 previous_block = getContainerPos(previous_node, MAP_BLOCKSIZE);
 
 		m_camera_position = pos;
 		m_camera_direction = dir;
 		m_camera_fov = fov;
 		m_camera_offset = offset;
 
-		v3s16 current_block = getContainerPos(floatToInt(m_camera_position + intToFloat(m_camera_offset, BS), BS), MAP_BLOCKSIZE);
+		v3s16 current_node = floatToInt(m_camera_position + intToFloat(m_camera_offset, BS), BS);
+		v3s16 current_block = getContainerPos(current_node, MAP_BLOCKSIZE);
+
+		// if moved over node boundary
+		if (current_node != previous_node)
+			markBlocksDirty(current_node, current_block, previous_block);
 
 		// reorder the blocks when camera crosses block boundary
 		if (previous_block != current_block)
@@ -176,4 +182,6 @@ private:
 	bool m_cache_trilinear_filter;
 	bool m_cache_bilinear_filter;
 	bool m_cache_anistropic_filter;
+
+	void markBlocksDirty(v3s16 current_node, v3s16 current_block, v3s16 previous_block);
 };
