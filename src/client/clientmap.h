@@ -161,16 +161,13 @@ private:
 
 	struct MapBlockSorter
 	{
-		v3f m_camera_pos;
-		irr::s16 bs = BS;
-		v3s16 center = v3s16(MAP_BLOCKSIZE/2,MAP_BLOCKSIZE/2,MAP_BLOCKSIZE/2);
-		v3f node_center = v3f(bs/2,bs/2,bs/2);
-		MapBlockSorter(v3f camera_pos) : m_camera_pos(camera_pos) {}
-		MapBlockSorter(const MapBlockSorter& origin) : m_camera_pos(origin.m_camera_pos) {}
+		v3s16 m_camera_block;
+		MapBlockSorter(v3s16 camera_block) : m_camera_block(camera_block) {}
+		MapBlockSorter(const MapBlockSorter& origin) : m_camera_block(origin.m_camera_block) {}
 
 		bool operator() (const v3s16 left, const v3s16 right) {
-			auto distance_left = m_camera_pos.getDistanceFromSQ(intToFloat(left * MAP_BLOCKSIZE + center, bs) - node_center);
-			auto distance_right = m_camera_pos.getDistanceFromSQ(intToFloat(right * MAP_BLOCKSIZE + center, bs) - node_center);
+			auto distance_left = left.getDistanceFromSQ(m_camera_block);
+			auto distance_right = right.getDistanceFromSQ(m_camera_block);
 			return distance_left > distance_right || (distance_left == distance_right && left > right);
 		}
 	};
