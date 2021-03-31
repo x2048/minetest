@@ -322,6 +322,7 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 	*/
 
 	MeshBufListList drawbufs;
+	std::vector<std::pair<v3s16,scene::IMeshBuffer*>> transparent_buffers;
 
 	for (auto &i : m_drawlist) {
 		v3s16 block_pos = i.first;
@@ -389,7 +390,10 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 						material.setFlag(video::EMF_WIREFRAME,
 							m_control.show_wireframe);
 
-						drawbufs.add(buf, block_pos, layer);
+						if (is_transparent_pass)
+							transparent_buffers.push_back(std::pair<v3s16, scene::IMeshBuffer*>(block_pos, buf));
+						else
+							drawbufs.add(buf, block_pos, layer);
 					}
 				}
 			}
@@ -425,11 +429,28 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 			}
 		}
 	}
+
+	drawcall_count += transparent_buffers.size();
+	for (auto &pair : transparent_buffers) {
+		scene::IMeshBuffer *buf = pair.second;
+		driver->setMaterial(buf->getMaterial());
+
+		v3f block_wpos = intToFloat(pair.first * MAP_BLOCKSIZE, BS);
+		m.setTranslation(block_wpos - offset);
+
+		driver->setTransform(video::ETS_WORLD, m);
+		driver->drawMeshBuffer(buf);
+		vertex_count += buf->getVertexCount();
+	}
 	g_profiler->avg(prefix + "draw meshes [ms]", draw.stop(true));
 
 	// Log only on solid pass because values are the same
 	if (pass == scene::ESNRP_SOLID) {
 		g_profiler->avg("renderMap(): animated meshes [#]", mesh_animate_count);
+	}
+
+	if (pass == scene::ESNRP_TRANSPARENT) {
+		g_profiler->avg("renderMap(): transparent buffers [#]", transparent_buffers.size());
 	}
 
 	g_profiler->avg(prefix + "vertices drawn [#]", vertex_count);
