@@ -167,8 +167,8 @@ private:
 		MapBlockSorter(const MapBlockSorter& origin) : m_camera_block(origin.m_camera_block) {}
 
 		bool operator() (const v3s16 left, const v3s16 right) const {
-			auto distance_left = left.getDistanceFromSQ(m_camera_block);
-			auto distance_right = right.getDistanceFromSQ(m_camera_block);
+			auto distance_left = abs(left.X - m_camera_block.X) + abs(left.Y - m_camera_block.Y) + abs(left.Z - m_camera_block.Z);
+			auto distance_right = abs(right.X - m_camera_block.X) + abs(right.Y - m_camera_block.Y) + abs(right.Z - m_camera_block.Z);
 			return distance_left > distance_right || (distance_left == distance_right && left > right);
 		}
 	};
