@@ -1571,7 +1571,7 @@ void MapblockMeshGenerator::generate()
 			struct boundary *boundary = bounds + i;
 
 			// offset layer to create bubble around the player
-			s16 a = base_a + octant->distance - nlayers;
+			s16 a = base_a + octant->distance - nlayers - ((i == 0) & 1);
 			if (a < 0)
 				continue;
 
