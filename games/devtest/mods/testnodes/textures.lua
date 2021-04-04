@@ -80,3 +80,22 @@ for a=1,#alphas do
 	})
 end
 
+-- Colored water
+minetest.register_node("testnodes:multitile_liquid", {
+	description = S("Multiple Tiles Liquid Test Node"),
+	drawtype = "liquid",
+	paramtype = "light",
+	tiles = {
+		"default_water.png^[colorize:#ff00007f^[opacity:192",
+		"default_water.png^[colorize:#00ffff7f^[opacity:192",
+		"default_water.png^[colorize:#0000ff7f^[opacity:192",
+		"default_water.png^[colorize:#ffff007f^[opacity:192",
+		"default_water.png^[colorize:#00ff007f^[opacity:192",
+		"default_water.png^[colorize:#ff00ff7f^[opacity:192",
+	},
+	inventory_image = "default_water.png^[colorize:#00ff007f",
+	wield_image = "default_water.png^[colorize:#00ff007f",
+	use_texture_alpha = "blend",
+
+	groups = { dig_immediate = 3 },
+})
