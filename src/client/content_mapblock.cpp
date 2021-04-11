@@ -735,7 +735,7 @@ void MapblockMeshGenerator::drawLiquidSourceNode()
 	for (const struct facePointer &fp : faces) {
 
 		if (has_multiple_tiles)
-			collector->startNewMeshLayer(true);
+			collector->startNewMeshLayer(/* allow_reuse */ false);
 
 		v3s16 dir = g_6dirs[fp.face];
 
