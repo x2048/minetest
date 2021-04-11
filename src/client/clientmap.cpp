@@ -262,22 +262,10 @@ void ClientMap::updateDrawList()
 
 	}
 
-	u16 blocks_queued = 0;
-	// Update block meshes if the blocks are marked dirty by camera movement
-	for (auto it = m_drawlist.rbegin(); it != m_drawlist.rend(); it++) {
-		MapBlock* block = it->second;
-		if (block->getNeedsRemesh()) {
-			block->setNeedsRemesh(false);
-			m_client->addUpdateMeshTask(block->getPos());
-			++blocks_queued;
-		}
-	}
-
 	g_profiler->avg("MapBlock meshes in range [#]", blocks_in_range_with_mesh);
 	g_profiler->avg("MapBlocks occlusion culled [#]", blocks_occlusion_culled);
 	g_profiler->avg("MapBlocks drawn [#]", m_drawlist.size());
 	g_profiler->avg("MapBlocks loaded [#]", blocks_loaded);
-	g_profiler->avg("MapBlocks queued for remesh [#]", blocks_queued);
 }
 
 void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
@@ -645,6 +633,22 @@ void ClientMap::renderPostFx(CameraMode cam_mode)
 void ClientMap::PrintInfo(std::ostream &out)
 {
 	out<<"ClientMap: ";
+}
+
+void ClientMap::queueBlocksForRemesh()
+{
+	u16 blocks_queued = 0;
+	// Update block meshes if the blocks are marked dirty by camera movement
+	for (auto it = m_drawlist.rbegin(); it != m_drawlist.rend(); it++) {
+		MapBlock* block = it->second;
+		if (block->getNeedsRemesh()) {
+			block->setNeedsRemesh(false);
+			m_client->addUpdateMeshTask(block->getPos());
+			++blocks_queued;
+		}
+	}
+
+	g_profiler->avg("MapBlocks queued for remesh [#]", blocks_queued);
 }
 
 void ClientMap::markBlocksDirty(v3s16 current_node, v3s16 previous_node, v3s16 current_block, v3s16 previous_block)

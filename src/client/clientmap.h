@@ -142,6 +142,9 @@ public:
 
 	void renderPostFx(CameraMode cam_mode);
 
+	// queue dirty blocks in the draw list for remesh
+	void queueBlocksForRemesh();
+
 	// For debug printing
 	virtual void PrintInfo(std::ostream &out);
 
