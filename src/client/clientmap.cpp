@@ -72,7 +72,7 @@ ClientMap::ClientMap(
 		RenderingEngine::get_scene_manager(), id),
 	m_client(client),
 	m_control(control),
-	m_drawlist(MapBlockSorter(v3s16(0,0,0)))
+	m_drawlist(MapBlockComparer(v3s16(0,0,0)))
 {
 	m_box = aabb3f(-BS*1000000,-BS*1000000,-BS*1000000,
 			BS*1000000,BS*1000000,BS*1000000);
@@ -187,7 +187,7 @@ void ClientMap::updateDrawList()
 	}
 
 	v3s16 camera_block = getContainerPos(floatToInt(camera_position, BS), MAP_BLOCKSIZE);
-	m_drawlist = std::map<v3s16, MapBlock*, MapBlockSorter>(MapBlockSorter(camera_block));
+	m_drawlist = std::map<v3s16, MapBlock*, MapBlockComparer>(MapBlockComparer(camera_block));
 
 	// Uncomment to debug occluded blocks in the wireframe mode
 	// TODO: Include this as a flag for an extended debugging setting

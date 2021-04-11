@@ -16,7 +16,6 @@ You should have received a copy of the GNU Lesser General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-
 #pragma once
 
 #include "irrlichttypes_extrabloated.h"
@@ -151,6 +150,25 @@ public:
 	const MapDrawControl & getControl() const { return m_control; }
 	f32 getCameraFov() const { return m_camera_fov; }
 private:
+	// Orders blocks by distance to the camera
+	class MapBlockComparer
+	{
+	public:
+		MapBlockComparer(const v3s16 &camera_block) : m_camera_block(camera_block) {}
+
+		MapBlockComparer(const MapBlockComparer& origin) : m_camera_block(origin.m_camera_block) {}
+
+		bool operator() (const v3s16 &left, const v3s16 &right) const
+		{
+			auto distance_left = abs(left.X - m_camera_block.X) + abs(left.Y - m_camera_block.Y) + abs(left.Z - m_camera_block.Z);
+			auto distance_right = abs(right.X - m_camera_block.X) + abs(right.Y - m_camera_block.Y) + abs(right.Z - m_camera_block.Z);
+			return distance_left > distance_right || (distance_left == distance_right && left > right);
+		}
+
+	private:
+		v3s16 m_camera_block;
+	};
+
 	Client *m_client;
 
 	aabb3f m_box = aabb3f(-BS * 1000000, -BS * 1000000, -BS * 1000000,
@@ -163,20 +181,7 @@ private:
 	f32 m_camera_fov = M_PI;
 	v3s16 m_camera_offset;
 
-	struct MapBlockSorter
-	{
-		v3s16 m_camera_block;
-		MapBlockSorter(v3s16 camera_block) : m_camera_block(camera_block) {}
-		MapBlockSorter(const MapBlockSorter& origin) : m_camera_block(origin.m_camera_block) {}
-
-		bool operator() (const v3s16 left, const v3s16 right) const {
-			auto distance_left = abs(left.X - m_camera_block.X) + abs(left.Y - m_camera_block.Y) + abs(left.Z - m_camera_block.Z);
-			auto distance_right = abs(right.X - m_camera_block.X) + abs(right.Y - m_camera_block.Y) + abs(right.Z - m_camera_block.Z);
-			return distance_left > distance_right || (distance_left == distance_right && left > right);
-		}
-	};
-
-	std::map<v3s16, MapBlock*, MapBlockSorter> m_drawlist;
+	std::map<v3s16, MapBlock*, MapBlockComparer> m_drawlist;
 
 	std::set<v2s16> m_last_drawn_sectors;
 
