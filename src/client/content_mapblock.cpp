@@ -1440,6 +1440,9 @@ void MapblockMeshGenerator::drawNodeboxNode()
 		}
 	}
 
+	if (f->alpha == ALPHAMODE_BLEND)
+		collector->startNewMeshLayer(false);
+
 	std::vector<aabb3f> boxes;
 	n.getNodeBoxes(nodedef, &boxes, neighbors_set);
 	for (auto &box : boxes)
