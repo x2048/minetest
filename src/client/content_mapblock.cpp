@@ -696,6 +696,7 @@ void MapblockMeshGenerator::drawLiquidSourceNode()
 	};
 
 	std::vector<struct facePointer> faces;
+	faces.reserve(6);
 
 	for (int face = 0; face < 6; face++) {
 		// Check this neighbor

@@ -378,7 +378,7 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 							m_control.show_wireframe);
 
 						if (is_transparent_pass)
-							transparent_buffers.push_back(std::pair<v3s16, scene::IMeshBuffer*>(block_pos, buf));
+							transparent_buffers.emplace_back(block_pos, buf);
 						else
 							drawbufs.add(buf, block_pos, layer);
 					}
