@@ -16,12 +16,12 @@ You should have received a copy of the GNU Lesser General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
+
 #pragma once
 
 #include "irrlichttypes_extrabloated.h"
 #include "map.h"
 #include "camera.h"
-#include "profiler.h"
 #include <set>
 #include <map>
 
@@ -103,7 +103,7 @@ public:
 
 		// reorder the blocks when camera crosses block boundary
 		if (previous_block != current_block)
-			updateDrawList();
+			m_needsUpdateDrawList = true;
 	}
 
 	/*
@@ -134,6 +134,8 @@ public:
 	void getBlocksInViewRange(v3s16 cam_pos_nodes,
 		v3s16 *p_blocks_min, v3s16 *p_blocks_max);
 	void updateDrawList();
+	// Returns true if draw list needs updating before drawing the next frame.
+	bool needsUpdateDrawList() { return m_needsUpdateDrawList; }
 	void renderMap(video::IVideoDriver* driver, s32 pass);
 
 	int getBackgroundBrightness(float max_d, u32 daylight_factor,
@@ -182,6 +184,7 @@ private:
 	v3s16 m_camera_offset;
 
 	std::map<v3s16, MapBlock*, MapBlockComparer> m_drawlist;
+	bool m_needsUpdateDrawList;
 
 	std::set<v2s16> m_last_drawn_sectors;
 
