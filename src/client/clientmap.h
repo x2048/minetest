@@ -84,27 +84,7 @@ public:
 		ISceneNode::drop();
 	}
 
-	void updateCamera(const v3f &pos, const v3f &dir, f32 fov, const v3s16 &offset)
-	{
-		v3s16 previous_node = floatToInt(m_camera_position, BS);
-		v3s16 previous_block = getContainerPos(previous_node, MAP_BLOCKSIZE);
-
-		m_camera_position = pos;
-		m_camera_direction = dir;
-		m_camera_fov = fov;
-		m_camera_offset = offset;
-
-		v3s16 current_node = floatToInt(m_camera_position, BS);
-		v3s16 current_block = getContainerPos(current_node, MAP_BLOCKSIZE);
-
-		// if moved over node boundary
-		if (current_node != previous_node)
-			markBlocksDirty(current_node, previous_node, current_block, previous_block);
-
-		// reorder the blocks when camera crosses block boundary
-		if (previous_block != current_block)
-			m_needsUpdateDrawList = true;
-	}
+	void updateCamera(const v3f &pos, const v3f &dir, f32 fov, const v3s16 &offset);
 
 	/*
 		Forcefully get a sector from somewhere
@@ -158,12 +138,13 @@ private:
 	public:
 		MapBlockComparer(const v3s16 &camera_block) : m_camera_block(camera_block) {}
 
+		// Copy constructor is needed by std::map to pass the instance to the internal tree.
 		MapBlockComparer(const MapBlockComparer& origin) : m_camera_block(origin.m_camera_block) {}
 
 		bool operator() (const v3s16 &left, const v3s16 &right) const
 		{
-			auto distance_left = abs(left.X - m_camera_block.X) + abs(left.Y - m_camera_block.Y) + abs(left.Z - m_camera_block.Z);
-			auto distance_right = abs(right.X - m_camera_block.X) + abs(right.Y - m_camera_block.Y) + abs(right.Z - m_camera_block.Z);
+			auto distance_left = manhattanDistance(left, m_camera_block);
+			auto distance_right = manhattanDistance(right, m_camera_block);
 			return distance_left > distance_right || (distance_left == distance_right && left > right);
 		}
 
