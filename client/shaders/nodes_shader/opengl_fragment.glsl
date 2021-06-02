@@ -191,11 +191,14 @@ float getPenumbraRadius(sampler2D shadowsampler, vec2 smTexCoord, float realDist
 	float depth = 0.0;
 	float pointDepth;
 	float maxRadius = SOFTSHADOWRADIUS * 5.0 * multiplier;
+	if (getHardShadowDepth(shadowsampler, smTexCoord, realDistance) > -0.01) {
+		maxRadius = max(3.0, maxRadius / 2.0);
+	}
 
 	float baseLength = getBaseLength(smTexCoord);
 	float perspectiveFactor;
-	float bound = clamp(PCFBOUND * (1 - baseLength), 0.5, PCFBOUND);
-	int n = 0;
+	float bound = clamp(PCFBOUND / 8 * (1 - baseLength), 0.5, PCFBOUND);
+	float n = 0.0;
 
 	for (y = -bound; y <= bound; y += 1.0)
 	for (x = -bound; x <= bound; x += 1.0) {
@@ -205,8 +208,8 @@ float getPenumbraRadius(sampler2D shadowsampler, vec2 smTexCoord, float realDist
 
 		pointDepth = getHardShadowDepth(shadowsampler, clampedpos.xy, realDistance);
 		if (pointDepth > -0.01) {
-			depth += pointDepth;
-			n += 1;
+			depth += pointDepth * pow(length(vec2(x,y)),2);
+			n += pow(length(vec2(x,y)),2);
 		}
 	}
 
