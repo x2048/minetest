@@ -52,7 +52,9 @@ vec4 applyToneMapping(vec4 color)
 	color.rgb = uncharted2Tonemap(exposureBias * color.rgb);
 	// Precalculated white_scale from
 	//vec3 whiteScale = 1.0 / uncharted2Tonemap(vec3(W));
-	vec3 whiteScale = vec3(1.036015346);
+//	vec3 whiteScale = vec3(1.036015346);
+//	vec3 whiteScale = vec3(255, 241, 224) / 219.8 * 1.036015346;
+	vec3 whiteScale = vec3(255, 214, 170) / 196.58 * 1.036015346;
 	color.rgb *= whiteScale;
 	return vec4(pow(color.rgb, vec3(1.0 / gamma)), color.a);
 }
