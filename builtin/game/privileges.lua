@@ -32,7 +32,13 @@ end
 
 core.register_privilege("interact", S("Can interact with things and modify the world"))
 core.register_privilege("shout", S("Can speak in chat"))
-core.register_privilege("basic_privs", S("Can modify 'shout' and 'interact' privileges"))
+
+local basic_privs =
+	core.string_to_privs((core.settings:get("basic_privs") or "shout,interact"))
+local basic_privs_desc = S("Can modify basic privileges (@1)",
+	core.privs_to_string(basic_privs, ', '))
+core.register_privilege("basic_privs", basic_privs_desc)
+
 core.register_privilege("privs", S("Can modify privileges"))
 
 core.register_privilege("teleport", {
@@ -91,10 +97,13 @@ core.register_privilege("rollback", {
 	description = S("Can use the rollback functionality"),
 	give_to_singleplayer = false,
 })
-core.register_privilege("debug", {
-	description = S("Allows enabling various debug options that may affect gameplay"),
+core.register_privilege("basic_debug", {
+	description = S("Can view more debug info that might give a gameplay advantage"),
 	give_to_singleplayer = false,
-	give_to_admin = true,
+})
+core.register_privilege("debug", {
+	description = S("Can enable wireframe"),
+	give_to_singleplayer = false,
 })
 
 core.register_can_bypass_userlimit(function(name, ip)

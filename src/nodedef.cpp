@@ -937,7 +937,8 @@ void ContentFeatures::updateTextures(ITextureSource *tsrc, IShaderSource *shdsrc
 
 	if (param_type_2 == CPT2_COLOR ||
 			param_type_2 == CPT2_COLORED_FACEDIR ||
-			param_type_2 == CPT2_COLORED_WALLMOUNTED)
+			param_type_2 == CPT2_COLORED_WALLMOUNTED ||
+			param_type_2 == CPT2_COLORED_DEGROTATE)
 		palette = tsrc->getPalette(palette_name);
 
 	if (drawtype == NDT_MESH && !mesh.empty()) {
@@ -1427,9 +1428,7 @@ void NodeDefManager::applyTextureOverrides(const std::vector<TextureOverride> &o
 	}
 }
 
-void NodeDefManager::updateTextures(IGameDef *gamedef,
-	void (*progress_callback)(void *progress_args, u32 progress, u32 max_progress),
-	void *progress_callback_args)
+void NodeDefManager::updateTextures(IGameDef *gamedef, void *progress_callback_args)
 {
 #ifndef SERVER
 	infostream << "NodeDefManager::updateTextures(): Updating "
@@ -1438,8 +1437,8 @@ void NodeDefManager::updateTextures(IGameDef *gamedef,
 	Client *client = (Client *)gamedef;
 	ITextureSource *tsrc = client->tsrc();
 	IShaderSource *shdsrc = client->getShaderSource();
-	scene::IMeshManipulator *meshmanip =
-		RenderingEngine::get_scene_manager()->getMeshManipulator();
+	auto smgr = client->getSceneManager();
+	scene::IMeshManipulator *meshmanip = smgr->getMeshManipulator();
 	TextureSettings tsettings;
 	tsettings.readSettings();
 
@@ -1448,7 +1447,7 @@ void NodeDefManager::updateTextures(IGameDef *gamedef,
 	for (u32 i = 0; i < size; i++) {
 		ContentFeatures *f = &(m_content_features[i]);
 		f->updateTextures(tsrc, shdsrc, meshmanip, client, tsettings);
-		progress_callback(progress_callback_args, i, size);
+		client->showUpdateProgressTexture(progress_callback_args, i, size);
 	}
 #endif
 }
@@ -1536,10 +1535,10 @@ void NodeDefManager::deSerialize(std::istream &is)
 }
 
 
-void NodeDefManager::addNameIdMapping(content_t i, std::string name)
+void NodeDefManager::addNameIdMapping(content_t i, const std::string &name)
 {
 	m_name_id_mapping.set(i, name);
-	m_name_id_mapping_with_aliases.insert(std::make_pair(name, i));
+	m_name_id_mapping_with_aliases.emplace(name, i);
 }
 
 

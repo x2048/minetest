@@ -68,6 +68,7 @@ class ClientMap : public Map, public scene::ISceneNode
 public:
 	ClientMap(
 			Client *client,
+			RenderingEngine *rendering_engine,
 			MapDrawControl &control,
 			s32 id
 	);
@@ -112,11 +113,15 @@ public:
 	}
 
 	void getBlocksInViewRange(v3s16 cam_pos_nodes,
-		v3s16 *p_blocks_min, v3s16 *p_blocks_max);
+		v3s16 *p_blocks_min, v3s16 *p_blocks_max, float range=-1.0f);
 	void updateDrawList();
+	void updateDrawListShadow(const v3f &shadow_light_pos, const v3f &shadow_light_dir, float shadow_range);
 	// Returns true if draw list needs updating before drawing the next frame.
 	bool needsUpdateDrawList() { return m_needsUpdateDrawList; }
 	void renderMap(video::IVideoDriver* driver, s32 pass);
+
+	void renderMapShadows(video::IVideoDriver *driver,
+			const video::SMaterial &material, s32 pass);
 
 	int getBackgroundBrightness(float max_d, u32 daylight_factor,
 			int oldvalue, bool *sunlight_seen_result);
@@ -130,7 +135,9 @@ public:
 	virtual void PrintInfo(std::ostream &out);
 
 	const MapDrawControl & getControl() const { return m_control; }
+	f32 getWantedRange() const { return m_control.wanted_range; }
 	f32 getCameraFov() const { return m_camera_fov; }
+
 private:
 	// Orders blocks by distance to the camera
 	class MapBlockComparer
@@ -150,6 +157,7 @@ private:
 	};
 
 	Client *m_client;
+	RenderingEngine *m_rendering_engine;
 
 	aabb3f m_box = aabb3f(-BS * 1000000, -BS * 1000000, -BS * 1000000,
 		BS * 1000000, BS * 1000000, BS * 1000000);
@@ -162,6 +170,7 @@ private:
 	v3s16 m_camera_offset;
 
 	std::map<v3s16, MapBlock*, MapBlockComparer> m_drawlist;
+	std::map<v3s16, MapBlock*, MapBlockComparer> m_drawlist_shadow;
 	bool m_needsUpdateDrawList;
 
 	std::set<v2s16> m_last_drawn_sectors;
@@ -171,4 +180,5 @@ private:
 	bool m_cache_anistropic_filter;
 
 	void markBlocksDirty(v3s16 current_node, v3s16 previous_node, v3s16 current_block, v3s16 previous_block);
+	bool m_added_to_shadow_renderer{false};
 };

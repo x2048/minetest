@@ -99,13 +99,15 @@ public:
 	u32 gen_notify_on;
 	const std::set<u32> *gen_notify_on_deco_ids; // shared
 
+	BiomeGen *biomegen;
 	BiomeManager *biomemgr;
 	OreManager *oremgr;
 	DecorationManager *decomgr;
 	SchematicManager *schemmgr;
 
 private:
-	EmergeParams(EmergeManager *parent, const BiomeManager *biomemgr,
+	EmergeParams(EmergeManager *parent, const BiomeGen *biomegen,
+		const BiomeManager *biomemgr,
 		const OreManager *oremgr, const DecorationManager *decomgr,
 		const SchematicManager *schemmgr);
 };
@@ -140,6 +142,8 @@ public:
 	~EmergeManager();
 	DISABLE_CLASS_COPY(EmergeManager);
 
+	const BiomeGen *getBiomeGen() const { return biomegen; }
+
 	// no usage restrictions
 	const BiomeManager *getBiomeManager() const { return biomemgr; }
 	const OreManager *getOreManager() const { return oremgr; }
@@ -170,6 +174,8 @@ public:
 		EmergeCompletionCallback callback,
 		void *callback_param);
 
+	bool isBlockInQueue(v3s16 pos);
+
 	v3s16 getContainingChunk(v3s16 blockpos);
 
 	Mapgen *getCurrentMapgen();
@@ -196,6 +202,7 @@ private:
 
 	// Managers of various map generation-related components
 	// Note that each Mapgen gets a copy(!) of these to work with
+	BiomeGen *biomegen;
 	BiomeManager *biomemgr;
 	OreManager *oremgr;
 	DecorationManager *decomgr;
