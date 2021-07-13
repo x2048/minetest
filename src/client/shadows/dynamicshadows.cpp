@@ -54,10 +54,6 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	newCenter = camPos + look * (sfNear + 0.05f * end);
 	v3f world_center = camPos2 + look * (sfNear + 0.05f * end);
 
-	// Create a vector to the frustum far corner
-	// @Liso: move all vars we can outside the loop.
-	float tanFovY = tanf(cam->getFovY() * 0.5f);
-	float tanFovX = tanf(cam->getFovX() * 0.5f);
 
 	const v3f &viewUp = cam->getCameraNode()->getUpVector();
 	// viewUp.normalize();
@@ -68,7 +64,7 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	v3f farCorner = look + viewRight * tanFovX + viewUp * tanFovY;
 	// Compute the frustumBoundingSphere radius
 	v3f boundVec = (camPos + farCorner * sfFar) - newCenter;
-	radius = boundVec.getLength() * 2.0f;
+	radius = boundVec.getLength();
 	// boundVec.getLength();
 	float diam = radius * 2.0f;
 
@@ -76,22 +72,29 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	m4f mTexelScaling;
 	mTexelScaling.setScale(texelsPerUnit);
 
+
+	v3f frustumCenter = newCenter;
+	#if 0
+	// this clamp to texel seems not useful now. Thank you @lhofhansl
 	m4f mLookAt, mLookAtInv;
 
 	mLookAt.buildCameraLookAtMatrixLH(
 			v3f(0.0f, 0.0f, 0.0f), -direction, v3f(0.0f, 1.0f, 0.0f));
 
 	mLookAt *= mTexelScaling;
+	
+
+	
 	mLookAtInv = mLookAt;
 	mLookAtInv.makeInverse();
-
-	v3f frustumCenter = newCenter;
 	mLookAt.transformVect(frustumCenter);
 	frustumCenter.X = floorf(frustumCenter.X); // clamp to texel increment
 	frustumCenter.Y = floorf(frustumCenter.Y); // clamp to texel increment
 	frustumCenter.Z = floorf(frustumCenter.Z);
 	mLookAtInv.transformVect(frustumCenter);
-	// probar radius multipliacdor en funcion del I, a menor I mas multiplicador
+
+	#endif
+	
 	v3f eye_displacement = direction * radius;
 
 	// we must compute the viewmat with the position - the camera offset
@@ -102,8 +105,8 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	shadow_frustum.ViewMat.buildCameraLookAtMatrixLH(
 			eye, frustumCenter, v3f(0.0f, 1.0f, 0.0f));
 	shadow_frustum.ProjOrthMat.buildProjectionMatrixOrthoLH(shadow_frustum.length,
-			shadow_frustum.length, 0.0,
-			shadow_frustum.length , true);
+			shadow_frustum.length, -1000.0f,
+			10000.0f , true);
 }
 
 DirectionalLight::DirectionalLight(const u32 shadowMapResolution, const v3f &position,
