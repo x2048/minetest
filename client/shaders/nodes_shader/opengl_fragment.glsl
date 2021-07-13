@@ -458,7 +458,7 @@ void main(void)
 	vec3 shadow_color = vec3(0.0, 0.0, 0.0);
 	vec3 posLightSpace = v_LightSpace.xyz;
 	float distance_rate = (1. - pow(clamp(2.0 * length(posLightSpace.xy - 0.5),0.0,1.0), 20.0));
-	float f_adj_shadow_strength = max(adj_shadow_strength-mtsmoothstep(.75,1.,  length(eyeVec) / f_shadowfar  ),0.0);
+	float f_adj_shadow_strength = adj_shadow_strength;//max(adj_shadow_strength-mtsmoothstep(.75,1.,  length(eyeVec) / f_shadowfar  ),0.0);
 
 	if (distance_rate > 1e-7 && posLightSpace.x>=0.0 && posLightSpace.x<=1.0 &&posLightSpace.y>=0.0 &&posLightSpace.y<=1.0) {
 #ifdef COLORED_SHADOWS
