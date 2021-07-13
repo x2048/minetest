@@ -31,50 +31,44 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 {
 	float radius;
 	v3f newCenter;
-
-	float fovy = cam->getFovY();
-	float adaptPOV = 0.05f;
-
-	
 	v3f look = cam->getDirection();
-	look.normalize();
-	//float angle = std::acosf(look.dotProduct(-direction));
-	//angle *= Rad2Grad;
-	// because / (look.getLength() * direction.getLength()) look and directior are normalized, so 1*1=1
+
+	// camera view tangents
+	float tanFovY = tanf(cam->getFovY() * 0.5f);
+	float tanFovX = tanf(cam->getFovX() * 0.5f);
+
+	// adjusted frustum boundaries
+	float sfNear = shadow_frustum.zNear;
+	float sfFar = adjustDist(shadow_frustum.zFar, cam->getFovY());
+
+	// adjusted camera positions
 	v3f camPos2 = cam->getPosition();
-
-	if (fovy < .5) {
-		//camPos2 += look * shadow_frustum.zFar * .15f;
-		adaptPOV = 0.35f;
-	}
-
-	//camPos2.Y = 10.0f;
 	v3f camPos = v3f(camPos2.X - cam->getOffset().X * BS,
 			camPos2.Y - cam->getOffset().Y * BS,
 			camPos2.Z - cam->getOffset().Z * BS);
-	camPos += look * shadow_frustum.zNear;
-	camPos2 += look * shadow_frustum.zNear;
-	float end = shadow_frustum.zNear + shadow_frustum.zFar;
+	camPos += look * sfNear;
+	camPos2 += look * sfNear;
 
-	
-	newCenter = camPos + look * (end * adaptPOV);
-	v3f world_center = camPos2 + look * (end * adaptPOV);
+	// center point of light frustum
+	float end = sfNear + sfFar;
+	newCenter = camPos + look * (sfNear + 0.05f * end);
+	v3f world_center = camPos2 + look * (sfNear + 0.05f * end);
+
 	// Create a vector to the frustum far corner
 	// @Liso: move all vars we can outside the loop.
-	
 	float tanFovY = tanf(cam->getFovY() * 0.5f);
 	float tanFovX = tanf(cam->getFovX() * 0.5f);
 
 	const v3f &viewUp = cam->getCameraNode()->getUpVector();
-	//viewUp.normalize();
+	// viewUp.normalize();
 
 	v3f viewRight = look.crossProduct(viewUp);
-	//viewRight.normalize();
+	// viewRight.normalize();
 
-	v3f farCornerDirection = look + viewRight * tanFovX + viewUp * tanFovY;
+	v3f farCorner = look + viewRight * tanFovX + viewUp * tanFovY;
 	// Compute the frustumBoundingSphere radius
-	v3f boundVec = (camPos + farCornerDirection * shadow_frustum.zFar) - newCenter;
-	radius = boundVec.getLength();
+	v3f boundVec = (camPos + farCorner * sfFar) - newCenter;
+	radius = boundVec.getLength() * 2.0f;
 	// boundVec.getLength();
 	float diam = radius * 2.0f;
 
