@@ -67,14 +67,14 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	radius = boundVec.getLength();
 	// boundVec.getLength();
 	float diam = radius * 2.0f;
-
+	v3f frustumCenter = newCenter;
+	
+	#if 0
+	// this clamp to texel seems not useful now. Thank you @lhofhansl
 	float texelsPerUnit = getMapResolution() / diam;
 	m4f mTexelScaling;
 	mTexelScaling.setScale(texelsPerUnit);
 
-
-	v3f frustumCenter = newCenter;
-	#if 0
 	// this clamp to texel seems not useful now. Thank you @lhofhansl
 	m4f mLookAt, mLookAtInv;
 
@@ -102,7 +102,7 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	v3f eye = frustumCenter - eye_displacement;
 	float arbitraryLongDistance=10000.0f;
 	shadow_frustum.position = world_center - eye_displacement;
-	shadow_frustum.length = radius;
+	shadow_frustum.length = diam;
 	shadow_frustum.ViewMat.buildCameraLookAtMatrixLH(
 			eye, frustumCenter, v3f(0.0f, 1.0f, 0.0f));
 	shadow_frustum.ProjOrthMat.buildProjectionMatrixOrthoLH(shadow_frustum.length,
