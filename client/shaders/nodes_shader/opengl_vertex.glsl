@@ -229,7 +229,7 @@ void main(void)
 	
 	vec3 adjustedBias = vec3(0.005);
 	if(f_normal_length>0.0){
-		adjustedBias = (20.0 * max(0.0,(length(eyeVec) / f_shadowfar )  )
+		adjustedBias = (0.025 * max(0.0,(length(eyeVec))  )
 		+ normalOffsetScale )*vNormal ;
 	}
  	v_LightSpace = m_ShadowViewProj * vec4(worldPosition.xyz +adjustedBias , 1.0);

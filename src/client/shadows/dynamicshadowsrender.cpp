@@ -380,10 +380,9 @@ void ShadowRenderer::renderShadowObjects(
 			BufferMaterialCullingList.emplace_back(
 				(bool)current_mat.BackfaceCulling, (bool)current_mat.FrontfaceCulling);
 
-			current_mat.BackfaceCulling = false;
-			current_mat.FrontfaceCulling = true;
-			current_mat.PolygonOffsetDirection = video::EPO_BACK;
-			current_mat.PolygonOffsetDepthBias = 4.4f;
+			current_mat.BackfaceCulling = true;
+			current_mat.FrontfaceCulling = false;
+			current_mat.PolygonOffsetDepthBias = 5.0f * 2.0 * 4.8e-7;
 			current_mat.PolygonOffsetSlopeScale = 1.0f;
 		}
 
