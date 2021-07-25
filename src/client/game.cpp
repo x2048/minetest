@@ -676,7 +676,7 @@ protected:
 	bool handleCallbacks();
 	void processQueues();
 	void updateProfilers(const RunStats &stats, const FpsControl &draw_times, f32 dtime);
-	void updateBasicDebugState();
+	void updateDebugState();
 	void updateStats(RunStats *stats, const FpsControl &draw_times, f32 dtime);
 	void updateProfilerGraphs(ProfilerGraph *graph);
 
@@ -1122,7 +1122,7 @@ void Game::run()
 		updatePlayerControl(cam_view);
 		step(&dtime);
 		processClientEvents(&cam_view_target);
-		updateBasicDebugState();
+		updateDebugState();
 		updateCamera(draw_times.busy_time, dtime);
 		updateSound(dtime);
 		processPlayerInteraction(dtime, m_game_ui->m_flags.show_hud,
@@ -1727,18 +1727,24 @@ void Game::processQueues()
 	shader_src->processQueue();
 }
 
-void Game::updateBasicDebugState()
+void Game::updateDebugState()
 {
+	bool has_basic_debug = client->checkPrivilege("basic_debug");
+	bool has_debug = client->checkPrivilege("debug");
+
 	if (m_game_ui->m_flags.show_basic_debug) {
-		if (!client->checkPrivilege("basic_debug")) {
+		if (!has_basic_debug) {
 			m_game_ui->m_flags.show_basic_debug = false;
-			hud->disableBlockBounds();
 		}
 	} else if (m_game_ui->m_flags.show_minimal_debug) {
-		if (client->checkPrivilege("basic_debug")) {
+		if (has_basic_debug) {
 			m_game_ui->m_flags.show_basic_debug = true;
 		}
 	}
+	if (!has_basic_debug)
+		hud->disableBlockBounds();
+	if (!has_debug)
+		draw_control->show_wireframe = false;
 }
 
 void Game::updateProfilers(const RunStats &stats, const FpsControl &draw_times,
@@ -3876,8 +3882,6 @@ void Game::updateFrame(ProfilerGraph *graph, RunStats *stats, f32 dtime,
 	runData.update_draw_list_timer += dtime;
 
 	float update_draw_list_delta = 0.2f;
-	if (ShadowRenderer *shadow = RenderingEngine::get_shadow_renderer())
-		update_draw_list_delta = shadow->getUpdateDelta();
 
 	v3f camera_direction = camera->getDirection();
 	if (runData.update_draw_list_timer >= update_draw_list_delta
@@ -3889,7 +3893,9 @@ void Game::updateFrame(ProfilerGraph *graph, RunStats *stats, f32 dtime,
 		client->getEnv().getClientMap().updateDrawList();
 		client->getEnv().getClientMap().queueBlocksForRemesh();
 		runData.update_draw_list_last_cam_dir = camera_direction;
+	}
 
+	if (RenderingEngine::get_shadow_renderer()) {
 		updateShadows();
 	}
 
@@ -4047,7 +4053,7 @@ void Game::updateShadows()
 	shadow->getDirectionalLight().setDirection(sun_pos);
 	shadow->setTimeOfDay(in_timeofday);
 
-	shadow->getDirectionalLight().update_frustum(camera, client);
+	shadow->getDirectionalLight().update_frustum(camera, client, m_camera_offset_changed);
 }
 
 /****************************************************************************

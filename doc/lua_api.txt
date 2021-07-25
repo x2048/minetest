@@ -247,7 +247,7 @@ Media files (textures, sounds, whatever) that will be transferred to the
 client and will be available for use by the mod and translation files for
 the clients (see [Translations]).
 
-It is suggested to use the folders for the purpous they are thought for,
+It is suggested to use the folders for the purpose they are thought for,
 eg. put textures into `textures`, translation files into `locale`,
 models for entities or meshnodes into `models` et cetera.
 
@@ -1022,7 +1022,8 @@ The function of `param2` is determined by `paramtype2` in node definition.
       to access/manipulate the content of this field
     * Bit 3: If set, liquid is flowing downwards (no graphical effect)
 * `paramtype2 = "wallmounted"`
-    * Supported drawtypes: "torchlike", "signlike", "normal", "nodebox", "mesh"
+    * Supported drawtypes: "torchlike", "signlike", "plantlike",
+      "plantlike_rooted", "normal", "nodebox", "mesh"
     * The rotation of the node is stored in `param2`
     * You can make this value by using `minetest.dir_to_wallmounted()`
     * Values range 0 - 5
@@ -1084,9 +1085,14 @@ The function of `param2` is determined by `paramtype2` in node definition.
       palette. The palette should have 32 pixels.
 * `paramtype2 = "glasslikeliquidlevel"`
     * Only valid for "glasslike_framed" or "glasslike_framed_optional"
-      drawtypes.
-    * `param2` values 0-63 define 64 levels of internal liquid, 0 being empty
-      and 63 being full.
+      drawtypes. "glasslike_framed_optional" nodes are only affected if the
+      "Connected Glass" setting is enabled.
+    * Bits 0-5 define 64 levels of internal liquid, 0 being empty and 63 being
+      full.
+    * Bits 6 and 7 modify the appearance of the frame and node faces. One or
+      both of these values may be added to `param2`:
+        * 64  - Makes the node not connect with neighbors above or below it.
+        * 128 - Makes the node not connect with neighbors to its sides.
     * Liquid texture is defined using `special_tiles = {"modname_tilename.png"}`
 * `paramtype2 = "colordegrotate"`
     * Same as `degrotate`, but with colors.
@@ -1198,7 +1204,12 @@ Look for examples in `games/devtest` or `games/minetest_game`.
 * `plantlike_rooted`
     * Enables underwater `plantlike` without air bubbles around the nodes.
     * Consists of a base cube at the co-ordinates of the node plus a
-      `plantlike` extension above with a height of `param2 / 16` nodes.
+      `plantlike` extension above
+    * If `paramtype2="leveled", the `plantlike` extension has a height
+      of `param2 / 16` nodes, otherwise it's the height of 1 node
+    * If `paramtype2="wallmounted"`, the `plantlike` extension
+      will be at one of the corresponding 6 sides of the base cube.
+      Also, the base cube rotates like a `normal` cube would
     * The `plantlike` extension visually passes through any nodes above the
       base cube without affecting them.
     * The base cube texture tiles are defined as normal, the `plantlike`
@@ -3601,7 +3612,7 @@ A whole number, 1 or more.
 Each additional octave adds finer detail to the noise but also increases the
 noise calculation load.
 3 is a typical minimum for a high quality, complex and natural-looking noise
-variation. 1 octave has a slight 'gridlike' appearence.
+variation. 1 octave has a slight 'gridlike' appearance.
 
 Choose the number of octaves according to the `spread` and `lacunarity`, and the
 size of the finest detail you require. For example:
@@ -3676,7 +3687,7 @@ For 2D or 3D perlin noise or perlin noise maps:
         spread = {x = 500, y = 500, z = 500},
         seed = 571347,
         octaves = 5,
-        persist = 0.63,
+        persistence = 0.63,
         lacunarity = 2.0,
         flags = "defaults, absvalue",
     }
@@ -3766,7 +3777,7 @@ The following is a decent set of parameters to work from:
         spread  = {x=200, y=200, z=200},
         seed    = 5390,
         octaves = 4,
-        persist = 0.5,
+        persistence = 0.5,
         lacunarity = 2.0,
         flags = "eased",
     },
@@ -4859,6 +4870,12 @@ Call these functions only at load time!
     * Called when an incoming mod channel message is received
     * You should have joined some channels to receive events.
     * If message comes from a server mod, `sender` field is an empty string.
+* `minetest.register_on_liquid_transformed(function(pos_list, node_list))`
+    * Called after liquid nodes are modified by the engine's liquid transformation
+      process.
+    * `pos_list` is an array of all modified positions.
+    * `node_list` is an array of the old node that was previously at the position
+      with the corresponding index in pos_list.
 
 Setting-related
 ---------------
@@ -6615,9 +6632,9 @@ object you are working with still exists.
         * `clouds`: Boolean for whether clouds appear. (default: `true`)
         * `sky_color`: A table containing the following values, alpha is ignored:
             * `day_sky`: ColorSpec, for the top half of the `"regular"`
-              sky during the day. (default: `#8cbafa`)
+              sky during the day. (default: `#61b5f5`)
             * `day_horizon`: ColorSpec, for the bottom half of the
-              `"regular"` sky during the day. (default: `#9bc1f0`)
+              `"regular"` sky during the day. (default: `#90d3f6`)
             * `dawn_sky`: ColorSpec, for the top half of the `"regular"`
               sky during dawn/sunset. (default: `#b4bafa`)
               The resulting sky color will be a darkened version of the ColorSpec.
@@ -6627,7 +6644,7 @@ object you are working with still exists.
               The resulting sky color will be a darkened version of the ColorSpec.
               Warning: The darkening of the ColorSpec is subject to change.
             * `night_sky`: ColorSpec, for the top half of the `"regular"`
-              sky during the night. (default: `#006aff`)
+              sky during the night. (default: `#006bff`)
               The resulting sky color will be a dark version of the ColorSpec.
               Warning: The darkening of the ColorSpec is subject to change.
             * `night_horizon`: ColorSpec, for the bottom half of the `"regular"`
@@ -7192,7 +7209,7 @@ Used by `minetest.register_abm`.
         chance = 1,
         -- Chance of triggering `action` per-node per-interval is 1.0 / this
         -- value
-        
+
         min_y = -32768,
         max_y = 32767,
         -- min and max height levels where ABM will be processed
@@ -7937,7 +7954,7 @@ See [Ores] section above for essential information.
             spread = {x = 100, y = 100, z = 100},
             seed = 23,
             octaves = 3,
-            persist = 0.7
+            persistence = 0.7
         },
         -- NoiseParams structure describing one of the perlin noises used for
         -- ore distribution.
@@ -7966,7 +7983,7 @@ See [Ores] section above for essential information.
             spread = {x = 100, y = 100, z = 100},
             seed = 47,
             octaves = 3,
-            persist = 0.7
+            persistence = 0.7
         },
         np_puff_bottom = {
             offset = 4,
@@ -7974,7 +7991,7 @@ See [Ores] section above for essential information.
             spread = {x = 100, y = 100, z = 100},
             seed = 11,
             octaves = 3,
-            persist = 0.7
+            persistence = 0.7
         },
 
         -- vein
@@ -7987,7 +8004,7 @@ See [Ores] section above for essential information.
             spread = {x = 100, y = 100, z = 100},
             seed = 17,
             octaves = 3,
-            persist = 0.7
+            persistence = 0.7
         },
         stratum_thickness = 8,
     }
@@ -8114,7 +8131,7 @@ See [Decoration types]. Used by `minetest.register_decoration`.
             spread = {x = 100, y = 100, z = 100},
             seed = 354,
             octaves = 3,
-            persist = 0.7,
+            persistence = 0.7,
             lacunarity = 2.0,
             flags = "absvalue"
         },
