@@ -1091,6 +1091,24 @@ bool Map::determineAdditionalOcclusionCheck(const v3s16 &pos_camera,
 	return false;
 }
 
+bool isOpaque(const ContentFeatures& node_def)
+{
+	if (!node_def.light_propagates) return true;
+	switch (node_def.drawtype) {
+	case NDT_NORMAL:
+		return true;
+	case NDT_LIQUID:
+	case NDT_ALLFACES:
+	case NDT_ALLFACES_OPTIONAL:
+	case NDT_GLASSLIKE:
+	case NDT_GLASSLIKE_FRAMED:
+	case NDT_GLASSLIKE_FRAMED_OPTIONAL:
+		return node_def.alpha == ALPHAMODE_OPAQUE;
+	default:
+		return false;
+	}
+}
+
 bool Map::isOccluded(const v3s16 &pos_camera, const v3s16 &pos_target,
 	float step, float stepfac, float offset, float end_offset, u32 needed_count)
 {
@@ -1112,13 +1130,16 @@ bool Map::isOccluded(const v3s16 &pos_camera, const v3s16 &pos_target,
 		MapNode node = getNode(pos_node, &is_valid_position);
 
 		if (is_valid_position &&
-				!m_nodedef->get(node).light_propagates) {
+				isOpaque(m_nodedef->get(node))) {
 			// Cannot see through light-blocking nodes --> occluded
 			count++;
 			if (count >= needed_count)
 				return true;
 		}
-		step *= stepfac;
+		if (offset < (distance + end_offset) / 2)
+			step *= stepfac;
+		else
+			step = step / stepfac;
 	}
 	return false;
 }
