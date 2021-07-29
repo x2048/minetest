@@ -472,7 +472,18 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 	drawcall_count += transparent_buffers.size();
 	for (auto &pair : transparent_buffers) {
 		scene::IMeshBuffer *buf = pair.second;
-		driver->setMaterial(buf->getMaterial());
+
+		auto &material = buf->getMaterial();
+		// pass the shadow map texture to the buffer texture
+		ShadowRenderer *shadow = m_rendering_engine->get_shadow_renderer();
+		if (shadow && shadow->is_active()) {
+			auto &layer = material.TextureLayer[3];
+			layer.Texture = shadow->get_texture();
+			layer.TextureWrapU = video::E_TEXTURE_CLAMP::ETC_CLAMP_TO_EDGE;
+			layer.TextureWrapV = video::E_TEXTURE_CLAMP::ETC_CLAMP_TO_EDGE;
+			layer.TrilinearFilter = true;
+		}
+		driver->setMaterial(material);
 
 		v3f block_wpos = intToFloat(pair.first * MAP_BLOCKSIZE, BS);
 		m.setTranslation(block_wpos - offset);
