@@ -1126,6 +1126,7 @@ bool Map::isOccluded(const v3s16 &pos_camera, const v3s16 &pos_target,
 	u32 count = 0;
 	bool is_valid_position;
 	bool camera_is_in_air = getNode(pos_camera).getContent() == CONTENT_AIR;
+	v3s16 prev_node(0);
 
 	for (; offset < distance + end_offset; offset += step) {
 		v3f pos_node_f = pos_origin_f + direction * offset;
@@ -1133,10 +1134,11 @@ bool Map::isOccluded(const v3s16 &pos_camera, const v3s16 &pos_target,
 
 		MapNode node = getNode(pos_node, &is_valid_position);
 
-		if (is_valid_position &&
+		if (is_valid_position && pos_node != prev_node &&
 				isOpaque(m_nodedef->get(node), camera_is_in_air)) {
 			// Cannot see through light-blocking nodes --> occluded
 			count++;
+			prev_node = pos_node;
 			if (count >= needed_count)
 				return true;
 		}
@@ -1189,7 +1191,7 @@ bool Map::isBlockOccluded(MapBlock *block, v3s16 cam_pos_nodes)
 	// to reduce the likelihood of falsely occluded blocks
 	// require at least two solid blocks
 	// this is a HACK, we should think of a more precise algorithm
-	u32 needed_count = 2;
+	u32 needed_count = 3;
 
 	// Additional occlusion check, see comments in that function
 	v3s16 check;
