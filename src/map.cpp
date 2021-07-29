@@ -1091,7 +1091,7 @@ bool Map::determineAdditionalOcclusionCheck(const v3s16 &pos_camera,
 	return false;
 }
 
-bool isOpaque(const ContentFeatures& node_def)
+bool isOpaque(const ContentFeatures& node_def, bool camera_is_in_air)
 {
 	if (!node_def.light_propagates) return true;
 	switch (node_def.drawtype) {
@@ -1103,7 +1103,7 @@ bool isOpaque(const ContentFeatures& node_def)
 	case NDT_GLASSLIKE:
 	case NDT_GLASSLIKE_FRAMED:
 	case NDT_GLASSLIKE_FRAMED_OPTIONAL:
-		return node_def.alpha == ALPHAMODE_OPAQUE;
+		return camera_is_in_air && node_def.alpha == ALPHAMODE_OPAQUE;
 	default:
 		return false;
 	}
@@ -1119,9 +1119,13 @@ bool Map::isOccluded(const v3s16 &pos_camera, const v3s16 &pos_target,
 	if (distance > 0.0f)
 		direction /= distance;
 
+	float min_step = step;
+	float max_step = step * MAP_BLOCKSIZE;
+
 	v3f pos_origin_f = intToFloat(pos_camera, BS);
 	u32 count = 0;
 	bool is_valid_position;
+	bool camera_is_in_air = getNode(pos_camera).getContent() == CONTENT_AIR;
 
 	for (; offset < distance + end_offset; offset += step) {
 		v3f pos_node_f = pos_origin_f + direction * offset;
@@ -1130,16 +1134,16 @@ bool Map::isOccluded(const v3s16 &pos_camera, const v3s16 &pos_target,
 		MapNode node = getNode(pos_node, &is_valid_position);
 
 		if (is_valid_position &&
-				isOpaque(m_nodedef->get(node))) {
+				isOpaque(m_nodedef->get(node), camera_is_in_air)) {
 			// Cannot see through light-blocking nodes --> occluded
 			count++;
 			if (count >= needed_count)
 				return true;
 		}
 		if (offset < (distance + end_offset) / 2)
-			step *= stepfac;
+			step = MYMIN(step * stepfac, max_step);
 		else
-			step = step / stepfac;
+			step = MYMAX(step / stepfac, min_step);
 	}
 	return false;
 }
