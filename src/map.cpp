@@ -1152,10 +1152,12 @@ bool Map::isOccluded(const v3s16 &pos_camera, const v3s16 &pos_target,
 
 bool Map::isBlockOccluded(MapBlock *block, v3s16 cam_pos_nodes)
 {
-	// Check occlusion for center and all 8 corners of the mapblock
+	const u8 SAMPLE_COUNT = 15;
+	// Check occlusion for center all 8 corners and 6 side centers 
+	// of the mapblock
 	// Overshoot a little for less flickering
 	static const s16 bs2 = MAP_BLOCKSIZE / 2 + 1;
-	static const v3s16 dir9[9] = {
+	static const v3s16 dir9[SAMPLE_COUNT] = {
 		v3s16( 0,  0,  0),
 		v3s16( 1,  1,  1) * bs2,
 		v3s16( 1,  1, -1) * bs2,
@@ -1165,6 +1167,13 @@ bool Map::isBlockOccluded(MapBlock *block, v3s16 cam_pos_nodes)
 		v3s16(-1,  1, -1) * bs2,
 		v3s16(-1, -1,  1) * bs2,
 		v3s16(-1, -1, -1) * bs2,
+
+		v3s16( -1,  0,  0) * (bs2-1),
+		v3s16( 1,  0, 0) * bs2,
+		v3s16( 0, -1, 0) * bs2,
+		v3s16( 0, 1, 0) * bs2,
+		v3s16( 0, 0, -1) * bs2,
+		v3s16( 0, 0, 1) * bs2,
 	};
 
 	v3s16 pos_blockcenter = block->getPosRelative() + (MAP_BLOCKSIZE / 2);
@@ -1176,22 +1185,22 @@ bool Map::isBlockOccluded(MapBlock *block, v3s16 cam_pos_nodes)
 
 	float start_offset = BS * 1.0f;
 
-	float end_offsets[9];
+	float end_offsets[SAMPLE_COUNT];
 	float min_offset = +INFINITY;
-	for (int i = 0; i < 9; i++) {
+	for (int i = 0; i < SAMPLE_COUNT; i++) {
 		end_offsets[i] = (intToFloat(pos_blockcenter + dir9[i], BS) - intToFloat(cam_pos_nodes, BS)).getLength();
 		if (min_offset > end_offsets[i])
 			min_offset = end_offsets[i];
 	}
 
-	for (int i = 0; i < 9; i++) {
+	for (int i = 0; i < SAMPLE_COUNT; i++) {
 		end_offsets[i] -= min_offset;
 	}
 
 	// to reduce the likelihood of falsely occluded blocks
 	// require at least two solid blocks
 	// this is a HACK, we should think of a more precise algorithm
-	u32 needed_count = 3;
+	u32 needed_count = 2;
 
 	// Additional occlusion check, see comments in that function
 	v3s16 check;
@@ -1202,7 +1211,7 @@ bool Map::isBlockOccluded(MapBlock *block, v3s16 cam_pos_nodes)
 			return false;
 	}
 
-	for (int i = 0; i < 9; i++) {
+	for (int i = 0; i < SAMPLE_COUNT; i++) {
 		if (!isOccluded(cam_pos_nodes, pos_blockcenter + dir9[i], step, stepfac,
 				start_offset, end_offsets[i], needed_count))
 			return false;
