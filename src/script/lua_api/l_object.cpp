@@ -2270,6 +2270,49 @@ int ObjectRef::l_set_minimap_modes(lua_State *L)
 	return 0;
 }
 
+// set_ambience(self, ambience)
+int ObjectRef::l_set_ambience(lua_State *L)
+{
+	NO_MAP_LOCK_REQUIRED;
+	ObjectRef *ref = checkobject(L, 1);
+	RemotePlayer *player = getplayer(ref);
+	if (player == nullptr)
+		return 0;
+
+	luaL_checktype(L, 2, LUA_TTABLE);
+	Ambience ambience = player->getAmbience();
+
+	ambience.brightness = rangelim(getfloatfield_default(L, 2, "brightness", ambience.brightness), 0.0f, 1.0f);
+
+	lua_getfield(L, 2, "color_tint");
+	if (!lua_isnil(L, -1))
+		read_color(L, -1, &ambience.color_tint);
+	lua_pop(L, 1);
+
+	getServer(L)->setAmbience(player, ambience);
+	lua_pushboolean(L, true);
+	return 1;
+}
+
+// get_ambience(self)
+int ObjectRef::l_get_ambience(lua_State *L)
+{
+	NO_MAP_LOCK_REQUIRED;
+	ObjectRef *ref = checkobject(L, 1);
+	RemotePlayer *player = getplayer(ref);
+	if (player == nullptr)
+		return 0;
+
+	const Ambience &ambience = player->getAmbience();
+
+	lua_newtable(L);
+	lua_pushnumber(L, ambience.brightness);
+	lua_setfield(L, -2, "brightness");
+	push_ARGB8(L, ambience.color_tint);
+	lua_setfield(L, -2, "color_tint");
+	return 1;
+}
+
 ObjectRef::ObjectRef(ServerActiveObject *object):
 	m_object(object)
 {}
@@ -2423,5 +2466,7 @@ luaL_Reg ObjectRef::methods[] = {
 	luamethod(ObjectRef, get_eye_offset),
 	luamethod(ObjectRef, send_mapblock),
 	luamethod(ObjectRef, set_minimap_modes),
+	luamethod(ObjectRef, set_ambience),
+	luamethod(ObjectRef, get_ambience),
 	{0,0}
 };
