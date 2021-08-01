@@ -226,6 +226,7 @@ public:
 	void handleCommand_PlayerSpeed(NetworkPacket *pkt);
 	void handleCommand_MediaPush(NetworkPacket *pkt);
 	void handleCommand_MinimapModes(NetworkPacket *pkt);
+	void handleCommand_SetAmbience(NetworkPacket *pkt);
 
 	void ProcessData(NetworkPacket *pkt);
 

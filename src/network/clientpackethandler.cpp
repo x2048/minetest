@@ -1645,3 +1645,15 @@ void Client::handleCommand_MinimapModes(NetworkPacket *pkt)
 	if (m_minimap)
 		m_minimap->setModeIndex(mode);
 }
+
+void Client::handleCommand_SetAmbience(NetworkPacket *pkt)
+{
+	f32 brightness;
+	video::SColor color_tint;
+
+	*pkt >> brightness >> color_tint;
+
+	Ambience& ambience = m_env.getLocalPlayer()->getAmbience();
+	ambience.brightness = brightness;
+	ambience.color_tint = color_tint;
+}

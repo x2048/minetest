@@ -763,7 +763,13 @@ enum ToClientCommand
 			std::string extra
 	*/
 
-	TOCLIENT_NUM_MSG_TYPES = 0x63,
+	TOCLIENT_SET_AMBIENCE = 0x63,
+	/*
+		f32 brightness
+		u8[4] color (ARGB)
+	*/
+
+	TOCLIENT_NUM_MSG_TYPES = 0x64,
 };
 
 enum ToServerCommand
