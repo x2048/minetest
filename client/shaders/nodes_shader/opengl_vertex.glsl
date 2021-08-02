@@ -196,6 +196,10 @@ void main(void)
 	varColor = clamp(color, 0.0, 1.0);
 
 	varColor.rgb = (1 - (1 - varColor.rgb) * (1 - ambientBrightness)) * ambientColorTint.rgb;
+	// adjust nightRatio for the ambient brightness, assuming that
+	// it only contributes to the 'night' part of the lighting.
+	nightRatio = 1 - brightness * (1 - nightRatio) * (1 - ambientBrightness) /
+			(1 - (1 - brightness) * (1 - ambientBrightness));
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
 	vec3 nNormal = normalize(vNormal);
