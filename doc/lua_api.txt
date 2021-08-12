@@ -6797,6 +6797,13 @@ object you are working with still exists.
     * Returns `false` if failed.
     * Resource intensive - use sparsely
     * To get blockpos, integer divide pos by 16
+* `set_ambient_light(light_definition)`: sets ambient light for the player
+    * `light_definition` is a table with the following optional fields:
+        * `brightness` - amount of added ambient light from 0 (no added light) to 1 (full brightness).
+        * `color_tint` - color that is applied to the rendered image.
+    * Returns true on success.
+* `get_ambient_light()`: returns the current ambient light state for the player.
+    * Result is a table with the same fields as `light_definition` in `set_ambient_light`.
 
 `PcgRandom`
 -----------
