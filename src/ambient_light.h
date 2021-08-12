@@ -19,13 +19,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #pragma once
 
-/** Describes player ambience settings such as brightness and color
+/** Describes ambient light settings for a player such as brightness and color
  */
-struct Ambience
+struct AmbientLight
 {
 	float brightness;
 	video::SColor color_tint;
 
-	/* Default ambience adds zero brightness and no tint */
-	Ambience() : brightness(0.0f), color_tint(0xFFFFFFFF) {}
+	/* Default ambient light adds zero brightness and no tint */
+	AmbientLight() : brightness(0.0f), color_tint(0xFFFFFFFF) {}
 };

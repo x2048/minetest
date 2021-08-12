@@ -763,7 +763,7 @@ enum ToClientCommand
 			std::string extra
 	*/
 
-	TOCLIENT_SET_AMBIENCE = 0x63,
+	TOCLIENT_SET_AMBIENT_LIGHT = 0x63,
 	/*
 		f32 brightness
 		u8[4] color (ARGB)

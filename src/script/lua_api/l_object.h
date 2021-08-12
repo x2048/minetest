@@ -376,9 +376,9 @@ private:
 	// set_minimap_modes(self, modes, wanted_mode)
 	static int l_set_minimap_modes(lua_State *L);
 
-	// set_ambience(self, ambience)
-	static int l_set_ambience(lua_State *L);
+	// set_ambient_light(self, ambient_light)
+	static int l_set_ambient_light(lua_State *L);
 	
-	// get_ambience(self)
-	static int l_get_ambience(lua_State *L);
+	// get_ambient_light(self)
+	static int l_get_ambient_light(lua_State *L);
 };

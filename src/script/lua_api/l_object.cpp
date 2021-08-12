@@ -2270,8 +2270,8 @@ int ObjectRef::l_set_minimap_modes(lua_State *L)
 	return 0;
 }
 
-// set_ambience(self, ambience)
-int ObjectRef::l_set_ambience(lua_State *L)
+// set_ambient_light(self, ambient_light)
+int ObjectRef::l_set_ambient_light(lua_State *L)
 {
 	NO_MAP_LOCK_REQUIRED;
 	ObjectRef *ref = checkobject(L, 1);
@@ -2280,22 +2280,22 @@ int ObjectRef::l_set_ambience(lua_State *L)
 		return 0;
 
 	luaL_checktype(L, 2, LUA_TTABLE);
-	Ambience ambience = player->getAmbience();
+	AmbientLight ambient_light = player->getAmbientLight();
 
-	ambience.brightness = rangelim(getfloatfield_default(L, 2, "brightness", ambience.brightness), 0.0f, 1.0f);
+	ambient_light.brightness = rangelim(getfloatfield_default(L, 2, "brightness", ambient_light.brightness), 0.0f, 1.0f);
 
 	lua_getfield(L, 2, "color_tint");
 	if (!lua_isnil(L, -1))
-		read_color(L, -1, &ambience.color_tint);
+		read_color(L, -1, &ambient_light.color_tint);
 	lua_pop(L, 1);
 
-	getServer(L)->setAmbience(player, ambience);
+	getServer(L)->setAmbientLight(player, ambient_light);
 	lua_pushboolean(L, true);
 	return 1;
 }
 
-// get_ambience(self)
-int ObjectRef::l_get_ambience(lua_State *L)
+// get_ambient_light(self)
+int ObjectRef::l_get_ambient_light(lua_State *L)
 {
 	NO_MAP_LOCK_REQUIRED;
 	ObjectRef *ref = checkobject(L, 1);
@@ -2303,12 +2303,12 @@ int ObjectRef::l_get_ambience(lua_State *L)
 	if (player == nullptr)
 		return 0;
 
-	const Ambience &ambience = player->getAmbience();
+	const AmbientLight &ambient_light = player->getAmbientLight();
 
 	lua_newtable(L);
-	lua_pushnumber(L, ambience.brightness);
+	lua_pushnumber(L, ambient_light.brightness);
 	lua_setfield(L, -2, "brightness");
-	push_ARGB8(L, ambience.color_tint);
+	push_ARGB8(L, ambient_light.color_tint);
 	lua_setfield(L, -2, "color_tint");
 	return 1;
 }
@@ -2466,7 +2466,7 @@ luaL_Reg ObjectRef::methods[] = {
 	luamethod(ObjectRef, get_eye_offset),
 	luamethod(ObjectRef, send_mapblock),
 	luamethod(ObjectRef, set_minimap_modes),
-	luamethod(ObjectRef, set_ambience),
-	luamethod(ObjectRef, get_ambience),
+	luamethod(ObjectRef, set_ambient_light),
+	luamethod(ObjectRef, get_ambient_light),
 	{0,0}
 };

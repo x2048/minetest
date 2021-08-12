@@ -533,10 +533,10 @@ public:
 		m_base_texture.set(&base_tex, services);
 		m_normal_texture.set(&normal_tex, services);
 
-		const float ambient_brightness(m_client->getEnv().getLocalPlayer()->getAmbience().brightness);
+		const float ambient_brightness(m_client->getEnv().getLocalPlayer()->getAmbientLight().brightness);
 		m_ambient_brightness.set(&ambient_brightness, services);
 
-		const video::SColorf ambient_color(m_client->getEnv().getLocalPlayer()->getAmbience().color_tint);
+		const video::SColorf ambient_color(m_client->getEnv().getLocalPlayer()->getAmbientLight().color_tint);
 		float ambient_color_array[4] {
 			ambient_color.r,
 			ambient_color.g,

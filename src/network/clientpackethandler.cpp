@@ -1646,14 +1646,14 @@ void Client::handleCommand_MinimapModes(NetworkPacket *pkt)
 		m_minimap->setModeIndex(mode);
 }
 
-void Client::handleCommand_SetAmbience(NetworkPacket *pkt)
+void Client::handleCommand_SetAmbientLight(NetworkPacket *pkt)
 {
 	f32 brightness;
 	video::SColor color_tint;
 
 	*pkt >> brightness >> color_tint;
 
-	Ambience& ambience = m_env.getLocalPlayer()->getAmbience();
-	ambience.brightness = brightness;
-	ambience.color_tint = color_tint;
+	AmbientLight& ambient_light = m_env.getLocalPlayer()->getAmbientLight();
+	ambient_light.brightness = brightness;
+	ambient_light.color_tint = color_tint;
 }

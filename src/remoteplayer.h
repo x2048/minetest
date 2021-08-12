@@ -23,7 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "player.h"
 #include "cloudparams.h"
 #include "skyparams.h"
-#include "ambience.h"
+#include "ambient_light.h"
 
 class PlayerSAO;
 
@@ -127,9 +127,9 @@ public:
 		*frame_speed = local_animation_speed;
 	}
 
-	void setAmbience(const Ambience &ambience) { m_ambience = ambience; }
+	void setAmbientLight(const AmbientLight &ambient_light) { m_ambient_light = ambient_light; }
 
-	const Ambience& getAmbience() const { return m_ambience; }
+	const AmbientLight& getAmbientLight() const { return m_ambient_light; }
 
 	void setDirty(bool dirty) { m_dirty = true; }
 
@@ -168,7 +168,7 @@ private:
 	MoonParams m_moon_params;
 	StarParams m_star_params;
 
-	Ambience m_ambience;
+	AmbientLight m_ambient_light;
 
 	session_t m_peer_id = PEER_ID_INEXISTENT;
 };

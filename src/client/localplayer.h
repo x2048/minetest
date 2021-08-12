@@ -23,7 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "environment.h"
 #include "constants.h"
 #include "settings.h"
-#include "ambience.h"
+#include "ambient_light.h"
 #include <list>
 
 class Client;
@@ -159,7 +159,7 @@ public:
 		added_velocity += vel;
 	}
 
-	inline Ambience& getAmbience() { return m_ambience; }
+	inline AmbientLight& getAmbientLight() { return m_ambient_light; }
 
 private:
 	void accelerate(const v3f &target_speed, const f32 max_increase_H,
@@ -212,5 +212,5 @@ private:
 
 	GenericCAO *m_cao = nullptr;
 	Client *m_client;
-	Ambience m_ambience;
+	AmbientLight m_ambient_light;
 };
