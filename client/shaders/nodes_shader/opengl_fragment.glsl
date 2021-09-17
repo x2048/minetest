@@ -360,6 +360,36 @@ float getShadow(sampler2D shadowsampler, vec2 smTexCoord, float realDistance)
 #endif
 
 #endif
+
+
+uniform vec3 sunlight = vec3(0.99, 1.0, 0.92);
+uniform vec3 moonlight = vec3(0.9, 0.9, 1.0);
+uniform vec3 twilight = vec3(1.0, 0.9, 0.9);
+uniform vec3 ambient_night = vec3(0.8, 0.9, 1.0);
+uniform vec3 ambient_day = vec3(0.9, 0.95, 1.0);
+const vec3 white = vec3(1.0, 1.0, 1.0);
+
+float getDayRatio(vec3 dayLight)
+{
+	return clamp(0.333 * (dayLight.r + dayLight.g + dayLight.b), 0.0, 1.0);
+}
+
+vec3 getSunlightTint(float dayRatio)
+{
+	float twilight_weight = pow((1.0 + cos(2.0*3.14*(pow(dayRatio, 2.2)-0.5))) / 2.0, 2.0);
+	float sunlight_weight = pow((1.0 + cos((1.0 - dayRatio) * 3.14)) / 2.0, 1.0);
+	float moonlight_weight = pow((1.0 + cos(dayRatio * 3.14)) / 2.0, 2.0);
+
+	return twilight * twilight_weight +
+			moonlight * moonlight_weight +
+			sunlight * sunlight_weight / (twilight_weight + moonlight_weight + sunlight_weight);
+}
+
+vec3 getAmbientTint(float dayRatio)
+{
+	return mix(ambient_night, ambient_day, dayRatio);
+}
+
 #endif
 
 void main(void)
@@ -436,6 +466,22 @@ void main(void)
 				(1.0 - adjusted_night_ratio) * ( // natural light
 						col.rgb * (1.0 - shadow_int * (1.0 - shadow_color)) +  // filtered texture color
 						dayLight * shadow_color * shadow_int);                 // reflected filtered sunlight/moonlight
+
+
+		if (f_normal_length != 0 && cosLight < 0.035) {
+			shadow_int = max(shadow_int, min(clamp(1.0-nightRatio, 0.0, 1.0), 1 - clamp(cosLight, 0.0, 0.035)/0.035));
+		}
+
+		float dayRatio = getDayRatio(dayLight);
+
+		vec3 light_tint = mix(getSunlightTint(dayRatio), getAmbientTint(dayRatio), clamp(shadow_int, 0.0, 1.0));
+
+		shadow_int = 1.0 - (shadow_int * f_adj_shadow_strength);
+		
+		// apply shadow (+color) as a factor to the material color
+		col.rgb = col.rgb * (1.0 - (1.0 - shadow_color) * (1.0 - pow(shadow_int, 2.0)));
+		col.rgb = pow(col.rgb, vec3(0.99)) * light_tint;
+		// col.r = 0.5 * clamp(getPenumbraRadius(ShadowMapSampler, posLightSpace.xy, posLightSpace.z, 1.0) / SOFTSHADOWRADIUS, 0.0, 1.0) + 0.5 * col.r;
 	}
 #endif
 
