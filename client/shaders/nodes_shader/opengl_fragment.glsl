@@ -179,6 +179,12 @@ float getPenumbraRadius(sampler2D shadowsampler, vec2 smTexCoord, float realDist
 	float baseLength = getBaseLength(smTexCoord);
 	float perspectiveFactor;
 
+	// return immediately if filtering is disabled
+#if !defined(POISSON_FILTER)
+	if (PCFBOUND == 0.0)
+		return 0.0;
+#endif
+
 	// Return fast if sharp shadows are requested
 	if (SOFTSHADOWRADIUS <= 1.0) {
 		perspectiveFactor = getDeltaPerspectiveFactor(baseLength);
