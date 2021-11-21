@@ -61,30 +61,37 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	v3f light_dir = light_right.crossProduct(light_up).normalize();
 
 	// Define camera position and focus point in the view frustum
-	v3f center = cam_pos + cam_dir * (0.9 * cam_near + 0.1 * cam_far);
+	float center_distance = (0.8 * cam_near + 0.2 * cam_far);
+	v3f center = cam_pos + cam_dir * center_distance;
 	float radius = (center - top_right_corner).getLength();
 
+	// Perspective parameter
 	float n = cam_near + sqrt(cam_near * cam_far);
 	// scale n when light and camera vectors are aligned
-	n /= MYMAX(0.0001, pow(1 - r, 4.0));
-	v3f p = center - (n + radius) * light_dir;
+	n /= MYMAX(0.0001, pow(1 - r, 5.0));
 
+	// Freeze dimensions of 'center' plane and pick the sphere radius
+	float fov_dy = center_distance * tan(cam_node->getFOV() / 2.0f);
+	float fov_dx = fov_dy / cam_node->getAspectRatio();
+	radius = MYMAX(radius, MYMAX(fov_dx, fov_dy));
+
+	v3f p = center - (n + radius) * light_dir;
 	m4f viewmatrix;
 	viewmatrix.buildCameraLookAtMatrixLH(p, center, light_up);
+
 
 	// Build light camera projection from point p to 
 	// a sphere with center 'center' and radius 'radius'.
 	float light_near = n;
 	float light_far = n + 2 * radius;
-	float max_dx = radius / (n + radius);
-	float max_dy = radius / (n + radius);
-
-	float aspect = max_dy/max_dx;
+	float aspect = fov_dy / fov_dx;
+	fov_dx /= n + radius;
+	fov_dy /= n + radius;
 
 	// Define projection matrix
 	// s swaps Y and Z axes, so that we render from the direction of light
 	m4f projmatrix;
-	projmatrix.buildProjectionMatrixPerspectiveFovLH(asin(max_dy) * 2.0f, aspect, light_near, light_far, false);
+	projmatrix.buildProjectionMatrixPerspectiveFovLH(atan(fov_dy) * 2.0f, aspect, light_near, light_far, false);
 	m4f s(
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, -1.0f / mapRes, 0.0f,
