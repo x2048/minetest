@@ -55,8 +55,7 @@ float getLinearDepth()
 vec3 getLightSpacePosition()
 {
 	vec4 pLightSpace;
-	float linear_bias = 0.2; // empirical
-	// some drawtypes have zero normals, so we need to handle it :(
+	float linear_bias = 0.5; // empirical
 	pLightSpace = m_ShadowViewProj * vec4(worldPosition - linear_bias * v_LightDirection, 1.0);
 	pLightSpace /= pLightSpace.w;
 	return pLightSpace.xyz * 0.5 + 0.5;
@@ -146,7 +145,7 @@ float getPenumbraRadius(sampler2D shadowsampler, vec2 smTexCoord, float realDist
 {
 	// Return fast if sharp shadows are requested
 	if (SOFTSHADOWRADIUS <= 1.0) {
-		return PCFBOUND;
+		return 1.2;
 	}
 
 	vec2 clampedpos;
