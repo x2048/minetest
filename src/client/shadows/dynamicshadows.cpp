@@ -52,13 +52,11 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	// X (right) axis complements the Y and Z
 
 	// When looking towards or away from the light, use player's X axis as light space X
-	float cos_light = abs(cam_dir.dotProduct(direction));
+	float cos_light = abs(cam_dir.dotProduct(-direction));
 	float sin_light = sqrt(1 - sqr(cos_light));
 
 	v3f light_up = -direction;
-	v3f light_right = (1 - cos_light) * light_up.crossProduct(cam_dir).normalize() + cos_light * cam_right;
-	if (light_right.dotProduct(cam_right) < 0)
-		light_right = -light_right;
+	v3f light_right = light_up.crossProduct(cam_dir).normalize();
 	v3f light_dir = light_right.crossProduct(light_up).normalize();
 
 	// Define camera position and focus point in the view frustum
@@ -69,12 +67,7 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	// Perspective parameter
 	float n = cam_near + sqrt(cam_near * (cam_near + 2 * radius * sin_light));
 	// scale n when light and camera vectors are aligned
-	n /= MYMAX(0.0001, pow(sin_light, 10)); // sin alpha
-
-	// Freeze dimensions of 'center' plane and pick the sphere radius
-	float fov_dy = center_distance * tan(cam_node->getFOV() / 2.0f);
-	float fov_dx = fov_dy / cam_node->getAspectRatio();
-	// radius = MYMAX(radius, MYMAX(fov_dx, fov_dy));
+	n /= MYMAX(0.0001, pow(sin_light, 4)); // sin alpha
 
 	v3f p = center - (n + radius) * light_dir;
 	m4f viewmatrix;
@@ -83,20 +76,18 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	// Build light camera projection from point p to 
 	// a sphere with center 'center' and radius 'radius'.
 	float light_near = n;
-	float light_far = n + 3 * radius;
+	float light_far = n + 2 * radius;
+	float fov_dy = (0.55 + 0.45 * sin_light) * radius / (n + radius);
+	float fov_dx = fov_dy;
 	float aspect = fov_dy / fov_dx;
-	fov_dx *= 0.4 + 0.6 * sin_light;
-	fov_dy *= 0.4 + 0.6 * sin_light;
-	fov_dx /= n + radius;
-	fov_dy /= n + radius;
 
 	// Define projection matrix
 	// s swaps Y and Z axes, so that we render from the direction of light
 	m4f projmatrix;
-	projmatrix.buildProjectionMatrixPerspectiveFovLH(atan(fov_dy) * 2.0f, aspect, light_near, light_far, false);
+	projmatrix.buildProjectionMatrixPerspectiveFovLH(asin(fov_dy) * 2.0f, aspect, light_near, light_far, false);
 	m4f s(
 		1.0f, 0.0f, 0.0f, 0.0f,
-		0.0f, 0.0f, -1.0f / (3 * radius), 0.0f,
+		0.0f, 0.0f, -1.0f / (10 * MAP_BLOCKSIZE * BS / 2 * radius), 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 0.0f, 1.0f
 	);
