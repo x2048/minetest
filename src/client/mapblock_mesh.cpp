@@ -340,12 +340,11 @@ void final_color_blend(video::SColor *result,
 	f32 b = c.b * (c.a * dayLight.b + n * artificialColor.b) * 2.0f;
 
 	if (lighting != nullptr) {
-		r = (lighting->brightness * (1.0f - rangelim(COLOR_SHADE_FACTOR - r, 0.0f, COLOR_SHADE_FACTOR) / COLOR_SHADE_FACTOR) + 
-				1.0f -  (1.0f - lighting->brightness) * rangelim(1.0f - r, 0.0f, COLOR_LIGHT_FACTOR) / COLOR_LIGHT_FACTOR) * lighting->color_tint.getRed() * ONE_BY_255;
-		g = (lighting->brightness * (1.0f - rangelim(COLOR_SHADE_FACTOR - g, 0.0f, COLOR_SHADE_FACTOR) / COLOR_SHADE_FACTOR) + 
-				1.0f -  (1.0f - lighting->brightness) * rangelim(1.0f - g, 0.0f, COLOR_LIGHT_FACTOR) / COLOR_LIGHT_FACTOR) * lighting->color_tint.getGreen() * ONE_BY_255;
-		b = (lighting->brightness * (1.0f - rangelim(COLOR_SHADE_FACTOR - b, 0.0f, COLOR_SHADE_FACTOR) / COLOR_SHADE_FACTOR) + 
-				1.0f -  (1.0f - lighting->brightness) * rangelim(1.0f - b, 0.0f, COLOR_LIGHT_FACTOR) / COLOR_LIGHT_FACTOR) * lighting->color_tint.getBlue() * ONE_BY_255;
+		float luminosity = 0.2126*r + 0.7152*g + 0.0722*b;
+		float factor = (1 - (1 - luminosity) * (1 - lighting->brightness) / COLOR_LIGHT_FACTOR) / luminosity;
+		r *= factor * lighting->color_tint.getRed() * ONE_BY_255;
+		g *= factor * lighting->color_tint.getGreen() * ONE_BY_255;
+		b *= factor * lighting->color_tint.getBlue() * ONE_BY_255;
 	}
 
 	// Emphase blue a bit in darker places
@@ -1013,6 +1012,89 @@ static void updateAllFastFaceRows(MeshMakeData *data,
 				dest);
 }
 
+ 
+/*
+Copyright (c) 2014 Adam 'entity' Krupicka
+Released under the zlib license (http://zlib.net/zlib_license.html).
+*/
+ 
+/** Converts an RGB color to it's HSV representation
+ *  @param rgb RGB color to convert
+ *  @return The HSV encoded color, as an irr::core::vector3df where X is Hue [0, 360); Y is Saturation [0, 1]; Z is Value [0, 1].
+ */
+inline core::vector3df RGBftoHSV(video::SColorf rgb)
+{
+    core::vector3df hsv;
+ 
+    f32 M = MYMAX(MYMAX(rgb.getRed(), rgb.getGreen()), MYMAX(rgb.getGreen(), rgb.getBlue()));
+    f32 m = MYMIN(MYMIN(rgb.getRed(), rgb.getGreen()), MYMIN(rgb.getGreen(), rgb.getBlue()));
+    f32 C = M - m;
+ 
+    if (C == 0)
+        hsv.X = 0;
+    else if (M <= rgb.getRed())
+        hsv.X = ((rgb.getGreen() - rgb.getBlue()) / C);
+    else if (M <= rgb.getGreen())
+        hsv.X = ((rgb.getBlue() - rgb.getRed()) / C) + 2;
+    else if (M <= rgb.getBlue())
+        hsv.X = ((rgb.getRed() - rgb.getGreen()) / C) + 4;
+ 
+    if (hsv.X < 0)
+        hsv.X += 6;
+    hsv.X /= 6;
+ 
+    hsv.Z = M;
+ 
+    if (hsv.Z == 0)
+        hsv.Y = 0;
+    else
+        hsv.Y = C / hsv.Z;
+ 
+    return hsv;
+}
+ 
+inline core::vector3df RGBtoHSV(video::SColor rgb)
+{
+    return RGBftoHSV(video::SColorf(rgb));
+}
+ 
+inline video::SColorf HSVtoRGBf(core::vector3df hsv)
+{
+    video::SColorf rgb;
+ 
+    f32 C = hsv.Y * hsv.Z;
+    f32 H = hsv.X / 60;
+    f32 Hmod = H - (2 * (int(H) / 2)); // same as H = fmod(H, 2)
+    f32 X = C * (1 - std::abs(Hmod - 1));
+ 
+    if (H < 1)
+        rgb = video::SColorf(C, X, 0);
+    else if (H < 2)
+        rgb = video::SColorf(X, C, 0);
+    else if (H < 3)
+        rgb = video::SColorf(0, C, X);
+    else if (H < 4)
+        rgb = video::SColorf(0, X, C);
+    else if (H < 5)
+        rgb = video::SColorf(X, 0, C);
+    else if (H < 6)
+        rgb = video::SColorf(C, 0, X);
+ 
+    f32 m = hsv.Y - C;
+    rgb.r += m;
+    rgb.g += m;
+    rgb.b += m;
+ 
+    return rgb;
+}
+ 
+inline video::SColor HSVtoRGB(core::vector3df hsv)
+{
+    return HSVtoRGBf(hsv).toSColor();
+}
+ 
+ 
+
 static void applyTileColor(PreMeshBuffer &pmb)
 {
 	video::SColor tc = pmb.layer.color;
@@ -1020,10 +1102,12 @@ static void applyTileColor(PreMeshBuffer &pmb)
 		return;
 	for (video::S3DVertex &vertex : pmb.vertices) {
 		video::SColor *c = &vertex.Color;
-		c->set(c->getAlpha(),
-			c->getRed() * tc.getRed() / 255,
-			c->getGreen() * tc.getGreen() / 255,
+		video::SColor x(c->getAlpha(),
+			c->getBlue() * tc.getRed() / 255,
+			c->getBlue() * tc.getGreen() / 255,
 			c->getBlue() * tc.getBlue() / 255);
+		core::vector3df v = RGBtoHSV(x);
+		c->set(c->getAlpha(), v.X * 255, v.Y * 255, v.Z * 255);
 	}
 }
 
@@ -1335,17 +1419,8 @@ video::SColor encode_light(u16 light, u8 emissive_light)
 	// artificial light, assume it is artificial when the night
 	// light bank is also lit.
 	if (day < night)
-		day = 0;
-	else
-		day = day - night;
-	u32 sum = day + night;
-	// Ratio of sunlight:
-	u32 r;
-	if (sum > 0)
-		r = day * 255 / sum;
-	else
-		r = 0;
-	// Average light:
-	float b = (day + night) / 2;
-	return video::SColor(r, b, b, b);
+		return video::SColor(0, 0, 0, night);
+	if (day == 0)
+		return video::SColor(0, 0, 0, 0);
+	return video::SColor((day - night) * 255 / day, 0, 0, day);
 }

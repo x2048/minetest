@@ -32,8 +32,8 @@ inline static void applyShadeFactor(video::SColor& color, float factor)
 	f32 alpha = color.getAlpha() / 255.0f;
 	factor = core::clamp(factor, 0.0f, 1.0f);
 	f32 correction_factor = (1.0f - alpha) + alpha * factor; // correct only the sunlight part of the color;
-	color.setRed(core::clamp(core::round32(color.getRed() * correction_factor), 0, 255));
-	color.setGreen(core::clamp(core::round32(color.getGreen() * correction_factor), 0, 255));
+	/*color.setRed(core::clamp(core::round32(color.getRed() * correction_factor), 0, 255));*/
+	/*color.setGreen(core::clamp(core::round32(color.getGreen() * correction_factor), 0, 255));*/
 	color.setBlue(core::clamp(core::round32(color.getBlue() * correction_factor), 0, 255));
 }
 
