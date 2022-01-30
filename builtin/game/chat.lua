@@ -742,14 +742,12 @@ core.register_chatcommand("mods", {
 	description = S("List mods installed on the server (-t: output in chat)"),
 	privs = {},
 	func = function(name, param)
-		if param == "" then
-			if INIT ~= "game" then
-				return false, param
-			else
-				core.show_formspec(name, "__builtin:mods", build_mods_formspec())
-				return true
-			end
-		elseif param == "-t" then
+		local use_gui = core.get_player_by_name(name)
+		use_gui = use_gui and param ~= "-t"
+		if use_gui then
+			core.show_formspec(name, "__builtin:mods", build_mods_formspec())
+			return true
+		else
 			local mods = core.get_modnames()
 			if #mods == 0 then
 				return true, S("No mods installed.")
