@@ -125,7 +125,7 @@ private:
 	std::string m_current_texture_modifier = "";
 	bool m_visuals_expired = false;
 	float m_step_distance_counter = 0.0f;
-	u8 m_last_light = 255;
+	video::SColor m_last_color;
 	bool m_is_visible = false;
 	s8 m_glow = 0;
 	// Material
@@ -245,7 +245,7 @@ public:
 
 	void updateLight(u32 day_night_ratio);
 
-	void setNodeLight(u8 light);
+	void setNodeColor(video::SColor color);
 
 	/* Get light position(s).
 	 * returns number of positions written into pos[], which must have space

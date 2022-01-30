@@ -324,7 +324,8 @@ void TestCAO::processMessage(const std::string &data)
 #include "clientobject.h"
 
 GenericCAO::GenericCAO(Client *client, ClientEnvironment *env):
-		ClientActiveObject(0, client, env)
+		ClientActiveObject(0, client, env),
+		m_last_color(0xFFFFFFFF)
 {
 	if (client == NULL) {
 		ClientActiveObject::registerType(getType(), create);
@@ -833,7 +834,7 @@ void GenericCAO::addToScene(ITextureSource *tsrc, scene::ISceneManager *smgr)
 	updateAnimation();
 	updateBonePosition();
 	updateAttachments();
-	setNodeLight(m_last_light);
+	setNodeColor(m_last_color);
 	updateMeshCulling();
 
 	if (m_animated_meshnode) {
@@ -881,17 +882,16 @@ void GenericCAO::updateLight(u32 day_night_ratio)
 	if (!pos_ok)
 		light_at_pos = blend_light(day_night_ratio, LIGHT_SUN, 0);
 
-	u8 light = decode_light(light_at_pos + m_glow);
-	if (light != m_last_light) {
-		m_last_light = light;
-		setNodeLight(light);
+	video::SColor color;
+	final_color_blend(&color, light_at_pos + m_glow, day_night_ratio, &m_env->getLocalPlayer()->getLighting());
+	if (color != m_last_color) {
+		m_last_color = color;
+		setNodeColor(color);
 	}
 }
 
-void GenericCAO::setNodeLight(u8 light)
+void GenericCAO::setNodeColor(video::SColor color)
 {
-	video::SColor color(255, light, light, light);
-
 	if (m_prop.visual == "wielditem" || m_prop.visual == "item") {
 		if (m_wield_meshnode)
 			m_wield_meshnode->setNodeLightColor(color);
