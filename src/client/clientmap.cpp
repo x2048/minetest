@@ -179,6 +179,7 @@ void ClientMap::updateDrawList()
 	// Use a higher fov to accomodate faster camera movements.
 	// Blocks are cropped better when they are drawn.
 	const f32 camera_fov = m_camera_fov * 1.1f;
+	const f32 max_z_threshold = cos(m_camera_fov * 0.15);
 
 	v3s16 cam_pos_nodes = floatToInt(camera_position, BS);
 
@@ -195,6 +196,9 @@ void ClientMap::updateDrawList()
 	u32 blocks_in_range_with_mesh = 0;
 	// Number of blocks occlusion culled
 	u32 blocks_occlusion_culled = 0;
+	// Distance to the closest block along the Z axis
+	float min_z = INFINITY;
+	float max_z = 0.0;
 
 	// No occlusion culling when free_move is on and camera is
 	// inside ground
@@ -275,11 +279,24 @@ void ClientMap::updateDrawList()
 			m_drawlist[block_coord] = block;
 
 			sector_blocks_drawn++;
+
+			// update nearest_z
+			float block_z = (intToFloat(block_position, BS) - camera_position).dotProduct(camera_direction) / camera_direction.getLength();
+			if (1) {
+			// if (block_z / d > max_z_threshold) {
+				if (block_z < min_z)
+					min_z = block_z;
+				if (block_z > max_z)
+					max_z = block_z;
+			}
 		} // foreach sectorblocks
 
 		if (sector_blocks_drawn != 0)
 			m_last_drawn_sectors.insert(sp);
 	}
+
+	m_min_z = min_z;
+	m_max_z = max_z;
 
 	g_profiler->avg("MapBlock meshes in range [#]", blocks_in_range_with_mesh);
 	g_profiler->avg("MapBlocks occlusion culled [#]", blocks_occlusion_culled);

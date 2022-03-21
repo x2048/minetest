@@ -27,7 +27,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 using m4f = core::matrix4;
 
-void DirectionalLight::createSplitMatrices(const Camera *cam)
+void DirectionalLight::createSplitMatrices(const Camera *cam, f32 nearest_z, f32 farthest_z)
 {
 	// Light-space perspective implementation for PSM
 	// taken from https://www.cg.tuwien.ac.at/research/vr/lispsm/shadows_egsr2004_revised.pdf
@@ -38,20 +38,22 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	v3f cam_dir = cam->getDirection().normalize();
 	v3f cam_up = v3f(cam->getCameraNode()->getUpVector()).normalize();
 	v3f cam_right = cam_up.crossProduct(cam_dir).normalize();
-	float cam_near = cam_node->getNearValue();
-	float cam_far = BS * MYMIN(farPlane, g_settings->getFloat("viewing_range"));
+	const float cam_near = MYMAX(nearest_z - BS * MAP_BLOCKSIZE, cam_node->getNearValue());
+	const float cam_far = MYMIN(farthest_z, BS * MYMIN(farPlane, g_settings->getFloat("viewing_range")));
+	const float cam_fov = cam_node->getFOV();
+	const float cam_fov_tan = tan(0.5 * cam_fov);
 
 	v3f top_right_corner = cam_pos + 
 				cam_near * cam_dir + 
-				cam_near * tan(0.5 * cam_node->getAspectRatio() * cam_node->getFOV()) * cam_right + 
-				cam_near * tan(0.5 * cam_node->getFOV()) * cam_up;
+				cam_near * cam_fov_tan * cam_node->getAspectRatio() * cam_right + 
+				cam_near * cam_fov_tan * cam_up;
  
 	// constructing light space
 	// Y (up) axis points towards the light.
 	// Z (dir) axis is in the same plane as Y and camera_dir and orthogonal to Y
 	// X (right) axis complements the Y and Z
 
-	float cos_light = abs(cam_dir.dotProduct(direction));
+	float cos_light = abs(cam_dir.dotProduct(direction)); // angle between camera and light
 	float sin_light = sqrt(1 - sqr(cos_light));
 
 	// calculate reference direction of the light
@@ -65,14 +67,14 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	v3f lcam_dir = lcam_right.crossProduct(lcam_up).normalize();
 
 	// Define camera position and focus point in the view frustum
-	float center_distance = cam_near + (0.2 + 0.3 * sin_light) * (cam_far - cam_near);
+	center_distance = cam_near + (0.2 + 0.3 * sin_light) * (cam_far - cam_near);
 	v3f center = cam_pos + cam_dir * center_distance;
 	float radius = (center - top_right_corner).getLength();
 
 	// Perspective parameter
-	float n = cam_near + sqrt(cam_near * (cam_near + 2 * radius));
+	float n = cam_near + sqrt(cam_near * cam_far);
 	// scale n when light and camera vectors are aligned
-	n /= MYMIN(0.15, MYMAX(0.001, pow(sin_light, 2.6))); // power of 2.6 aligns perspective compression with rotation
+	n /= MYMIN(0.15, MYMAX(0.001, sin_light/(cos_light + 1e-6)));
 
 	v3f p = center - (n + radius + BS) * lcam_dir;
 	m4f viewmatrix;
@@ -80,9 +82,9 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 
 	// Build light camera projection from point p to 
 	// a sphere with center 'center' and radius 'radius'.
-	float light_near = n + MYMIN(radius * (1.0 - sin_light), radius * (1.0 - cos_light));
-	float light_far = n + 2 * MYMAX(radius * sin_light, radius * cos_light);
-	float fov_dy = MYMAX(radius * sin_light, radius * 0.71) / (n + radius);
+	float light_near = n ;
+	float light_far = n + 2 * radius;
+	float fov_dy = 2 * radius / (n + radius);
 	float fov_dx = fov_dy;
 	float aspect = fov_dy / fov_dx;
 
@@ -100,17 +102,17 @@ void DirectionalLight::createSplitMatrices(const Camera *cam)
 	s *= projmatrix;
 	projmatrix = s;
 
-	v3f v = light_right.crossProduct(lcam_right);
-	float c = lcam_right.dotProduct(light_right);
+	// v3f v = light_right.crossProduct(lcam_right);
+	// float c = lcam_right.dotProduct(light_right);
 
-	float angle = acos(c) + M_PI;
-	if (v.dotProduct(direction) < 0)
-		angle = -angle;
+	// float angle = acos(c) + M_PI;
+	// if (v.dotProduct(direction) < 0)
+	// 	angle = -angle;
 	
-	m4f f(core::matrix4::EM4CONST_IDENTITY);
-	f.setRotationAxisRadians(angle, v3f(0,0,1));
-	f *= projmatrix;
-	projmatrix = f;
+	// m4f f(core::matrix4::EM4CONST_IDENTITY);
+	// f.setRotationAxisRadians(angle, v3f(0,0,1));
+	// f *= projmatrix;
+	// projmatrix = f;
 
 	// update the frustum settings
 	future_frustum.position = cam->getPosition() - 20000.0f * direction;
@@ -141,7 +143,8 @@ void DirectionalLight::update_frustum(const Camera *cam, Client *client, bool fo
 	future_frustum.zFar = zFar;
 
 	// update shadow frustum
-	createSplitMatrices(cam);
+	auto& map = client->getEnv().getClientMap();
+	createSplitMatrices(cam, map.getMinZ(), map.getMaxZ());
 	// get the draw list for shadows
 	client->getEnv().getClientMap().updateDrawListShadow(
 			getPosition(), getDirection(), future_frustum.length);

@@ -157,6 +157,10 @@ void GameUI::update(const RunStats &stats, Client *client, MapDrawControl *draw_
 			}
 		}
 
+		os << " | min_z: " << client->getEnv().getClientMap().getMinZ()
+				<< " | max_z: " << client->getEnv().getClientMap().getMaxZ()
+				<< " | center_distance: " << RenderingEngine::get_shadow_renderer()->getDirectionalLight().center_distance;
+
 		setStaticText(m_guitext2, utf8_to_wide(os.str()).c_str());
 
 		m_guitext2->setRelativePosition(core::rect<s32>(5,

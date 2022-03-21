@@ -137,7 +137,7 @@ bool isBlockInSight(v3s16 blockpos_b, v3f camera_pos, v3f camera_dir,
 	// such that a block that has any portion visible with the
 	// current camera position will have the center visible at the
 	// adjusted postion
-	f32 adjdist = BLOCK_MAX_RADIUS / cos((M_PI - camera_fov) / 2);
+	f32 adjdist = BLOCK_MAX_RADIUS / cos((M_PI - camera_fov) / 2) + 0.5;
 
 	// Block position relative to adjusted camera
 	v3f blockpos_adj = blockpos - (camera_pos - camera_dir * adjdist);
@@ -153,7 +153,7 @@ bool isBlockInSight(v3s16 blockpos_b, v3f camera_pos, v3f camera_dir,
 	// HOTFIX: use sligthly increased angle (+10%) to fix too agressive
 	// culling. Somebody have to find out whats wrong with the math here.
 	// Previous value: camera_fov / 2
-	if (cosangle < std::cos(camera_fov * 0.55f))
+	if (cosangle < std::cos(camera_fov * 0.5f))
 		return false;
 
 	return true;

@@ -93,8 +93,10 @@ public:
 
 	void commitFrustum();
 
+	f32 center_distance;
+
 private:
-	void createSplitMatrices(const Camera *cam);
+	void createSplitMatrices(const Camera *cam, f32 nearest_z, f32 farthest_z);
 
 	video::SColorf diffuseColor;
 

@@ -148,6 +148,8 @@ public:
 	const MapDrawControl & getControl() const { return m_control; }
 	f32 getWantedRange() const { return m_control.wanted_range; }
 	f32 getCameraFov() const { return m_camera_fov; }
+	f32 getMinZ() const { return m_min_z;}
+	f32 getMaxZ() const { return m_max_z;}
 
 private:
 	// Orders blocks by distance to the camera
@@ -190,4 +192,6 @@ private:
 	bool m_cache_bilinear_filter;
 	bool m_cache_anistropic_filter;
 	bool m_added_to_shadow_renderer{false};
+	f32  m_min_z; // Z-value of the closest block in the view frustum
+	f32  m_max_z; // Z-value of the most distant block in the view frustum
 };

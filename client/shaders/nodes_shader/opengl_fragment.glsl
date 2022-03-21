@@ -123,9 +123,9 @@ float getHardShadow(sampler2D shadowsampler, vec2 smTexCoord, float realDistance
 	#define PCFSAMPLES 16.0
 	#define PCFRADIUS 1.5
 #elif SHADOW_FILTER == 1
-	#define PCFBOUND 0.5	// 4 samples
+	#define PCFBOUND 5.5	// 4 samples
 	#define PCFSAMPLES 4.0
-	#define PCFRADIUS 1.0
+	#define PCFRADIUS 10.0
 #else
 	#define PCFBOUND 0.0
 	#define PCFSAMPLES 1.0
@@ -428,7 +428,7 @@ void main(void)
 	vec3 shadow_color = vec3(0.0, 0.0, 0.0);
 	vec3 posLightSpace = getLightSpacePosition();
 
-	float distance_rate = (1 - pow(clamp(2.0 * length(posLightSpace.xy - 0.5),0.0,1.0), 10.0));
+	float distance_rate = (1 - pow(clamp(2.0 * length(posLightSpace.xy - 0.5),0.0,1.0), 100.0));
 	float f_adj_shadow_strength = max(adj_shadow_strength-mtsmoothstep(0.9,1.1,  posLightSpace.z  ),0.0);
 
 	if (distance_rate > 1e-7) {
