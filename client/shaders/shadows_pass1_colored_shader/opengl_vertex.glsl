@@ -1,3 +1,6 @@
+#ifdef GL_ES
+precision mediump float;
+#endif
 uniform mat4 LightMVP; // world matrix
 uniform vec4 CameraPos;
 varying vec4 tPos;

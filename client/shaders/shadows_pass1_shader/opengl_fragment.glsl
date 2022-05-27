@@ -1,9 +1,14 @@
 uniform sampler2D ColorMapSampler;
 varying vec4 tPos;
+#ifdef GL_ES
+varying mediump vec4 varTexCoord;
+#else
+centroid varying vec4 varTexCoord;
+#endif
 
 void main()
 {
-	vec4 col = texture2D(ColorMapSampler, gl_TexCoord[0].st);
+	vec4 col = texture2D(ColorMapSampler, varTexCoord.st);
 
 	if (col.a < 0.70)
 		discard;

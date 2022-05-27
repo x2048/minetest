@@ -159,8 +159,8 @@ float getPenumbraRadius(sampler2D shadowsampler, vec2 smTexCoord, float realDist
 	// conversion factor from shadow depth to blur radius
 	float depth_to_blur = f_shadowfar / SOFTSHADOWRADIUS / xyPerspectiveBias0;
 	if (depth > 0.0 && f_normal_length > 0.0)
-		// 5 is empirical factor that controls how fast shadow loses sharpness
-		sharpness_factor = clamp(5 * depth * depth_to_blur, 0.0, 1.0);
+		// 5.0 is empirical factor that controls how fast shadow loses sharpness
+		sharpness_factor = clamp(5.0 * depth * depth_to_blur, 0.0, 1.0);
 	depth = 0.0;
 
 	float world_to_texture = xyPerspectiveBias1 / perspective_factor / perspective_factor
@@ -310,7 +310,7 @@ vec4 getShadowColor(sampler2D shadowsampler, vec2 smTexCoord, float realDistance
 	vec2 clampedpos;
 	vec4 visibility = vec4(0.0);
 	float x, y;
-	float bound = (1 + 0.5 * int(SOFTSHADOWRADIUS > 1.0)) * PCFBOUND; // scale max bound for soft shadows
+	float bound = (1.0 + 0.5 * (SOFTSHADOWRADIUS > 1.0 ? 1.0 : 0.0)) * PCFBOUND; // scale max bound for soft shadows
 	bound = clamp(0.5 * (4.0 * radius - 1.0), 0.5, bound);
 	float scale_factor = radius / bound / f_textureresolution;
 	float n = 0.0;
@@ -338,7 +338,7 @@ float getShadow(sampler2D shadowsampler, vec2 smTexCoord, float realDistance)
 	vec2 clampedpos;
 	float visibility = 0.0;
 	float x, y;
-	float bound = (1 + 0.5 * int(SOFTSHADOWRADIUS > 1.0)) * PCFBOUND; // scale max bound for soft shadows
+	float bound = (1.0 + 0.5 * (SOFTSHADOWRADIUS > 1.0 ? 1.0 : 0.0)) * PCFBOUND; // scale max bound for soft shadows
 	bound = clamp(0.5 * (4.0 * radius - 1.0), 0.5, bound);
 	float scale_factor = radius / bound / f_textureresolution;
 	float n = 0.0;
@@ -454,8 +454,8 @@ void main(void)
 		// Apply self-shadowing when light falls at a narrow angle to the surface
 		// Cosine of the cut-off angle.
 		const float self_shadow_cutoff_cosine = 0.035;
-		if (f_normal_length != 0 && cosLight < self_shadow_cutoff_cosine) {
-			shadow_int = max(shadow_int, 1 - clamp(cosLight, 0.0, self_shadow_cutoff_cosine)/self_shadow_cutoff_cosine);
+		if (f_normal_length != 0.0 && cosLight < self_shadow_cutoff_cosine) {
+			shadow_int = max(shadow_int, 1.0 - clamp(cosLight, 0.0, self_shadow_cutoff_cosine)/self_shadow_cutoff_cosine);
 			shadow_color = mix(vec3(0.0), shadow_color, min(cosLight, self_shadow_cutoff_cosine)/self_shadow_cutoff_cosine);
 		}
 
