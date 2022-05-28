@@ -613,6 +613,9 @@ ShaderInfo ShaderSource::generateShader(const std::string &name,
 	case TILE_MATERIAL_WAVING_LIQUID_BASIC:
 		shaderinfo.base_material = video::EMT_TRANSPARENT_ALPHA_CHANNEL_REF;
 		break;
+	case TILE_MATERIAL_MAP_SHADOW:
+		shaderinfo.base_material = video::EMT_ONETEXTURE_BLEND;
+		break;
 	}
 	shaderinfo.material = shaderinfo.base_material;
 

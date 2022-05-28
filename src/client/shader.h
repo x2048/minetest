@@ -103,6 +103,17 @@ public:
 		std::copy(value, value + count, m_sent);
 		has_been_set = true;
 	}
+
+	void forcedSet(const T value[count], video::IMaterialRendererServices *services)
+	{
+		if (is_pixel)
+			services->setPixelShaderConstant(services->getPixelShaderConstantID(m_name), value, count);
+		else
+			services->setVertexShaderConstant(services->getVertexShaderConstantID(m_name), value, count);
+
+		std::copy(value, value + count, m_sent);
+		has_been_set = true;
+	}
 };
 
 template <typename T, std::size_t count = 1>

@@ -15,7 +15,6 @@ float packColor(vec3 color)
 		+ floor(color.r * c_precision + 0.5) * c_precisionp1 * c_precisionp1;
 }
 
-const vec3 black = vec3(0.0);
 #endif
 
 void main()
