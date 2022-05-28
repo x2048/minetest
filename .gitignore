@@ -115,5 +115,8 @@ compile_commands.json
 # Optional user provided library folder
 lib/irrlichtmt
 
+# Irrlicht shaders for OpenGL ES 2
+client/shaders/Irrlicht
+
 # Generated mod storage database
 client/mod_storage.sqlite
