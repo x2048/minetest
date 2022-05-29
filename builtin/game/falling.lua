@@ -162,6 +162,11 @@ core.register_entity(":__builtin:falling_node", {
 				-- Get rotation from a precalculated lookup table
 				local euler = facedir_to_euler[fdir + 1]
 				self.object:set_rotation(euler)
+			elseif (def.paramtype2 == "4dir" or def.paramtype2 == "color4dir") then
+				local fdir = node.param2 % 4
+				-- Get rotation from a precalculated lookup table
+				local euler = facedir_to_euler[fdir + 1]
+				self.object:set_rotation(euler)
 			elseif (def.drawtype ~= "plantlike" and def.drawtype ~= "plantlike_rooted" and
 					(def.paramtype2 == "wallmounted" or def.paramtype2 == "colorwallmounted" or def.drawtype == "signlike")) then
 				local rot = node.param2 % 8
