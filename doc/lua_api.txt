@@ -9211,40 +9211,39 @@ a tween table.
 
 The following definitions are all equivalent, listed in order of precedence from
 lowest (the legacy syntax) to highest (tween tables). If multiple forms of a
-property definition are present, the highest-precidence form will be selected
+property definition are present, the highest-precedence form will be selected
 and all lower-precedence fields will be ignored, allowing for graceful
 degradation in older clients).
 
-1. Old syntax
+1. Legacy syntax
 
-    {
-        -- old syntax
-        maxpos = {x = 0, y = 0, z = 0},
-        minpos = {x = 0, y = 0, z = 0},
-    }
+        {
+            maxpos = {x = 0, y = 0, z = 0},
+            minpos = {x = 0, y = 0, z = 0},
+        }
+
 
 2. Scalar value
 
+        {
+            pos = 0,
+            -- all components of every particle's position vector will be set to this
+            -- value
+        }
+
+3. Vector value
+
+      {
+          pos = vector.new(0,0,0),
+          -- all particles will appear at this exact position throughout the lifetime
+          -- of the particlespawner
+      }
+
+4. Range value
+
+Ranges can be scalar (float) ranges or vector ranges. This example shows a vector range.
+
     {
-
-        pos = 0,
-        -- all components of every particle's position vector will be set to this
-        -- value
-    }
-
-3. Vector
-
-    {
-        pos = vector.new(0,0,0),
-        -- all particles will appear at this exact position throughout the lifetime
-        -- of the particlespawner
-    }
-
-4. Range
-   Ranges can be scalar (float) ranges or vector ranges. This example shows a vector range.
-
-    {
-
         pos = {
             -- the particle will appear at a position that is picked at random from
             -- within a cubic range
@@ -9267,16 +9266,18 @@ degradation in older clients).
         },
     }
 
-5. Tween table
-    A tween table should consist of a list of frames in the same form as the
-    untweened pos property above, which the engine will interpolate between,
-    and optionally a number of properties that control how the interpolation
-    takes place. currently only two frames, the first and the last, are
-    used, but extra frames are accepted for the sake of forward compatibility.
-    Any of the above definition styles can be used here as well in any combination
-    supported by the property type.
 
-    You need to append `_tween` suffix to the property name to assign a tween table.
+**Tween table**
+
+A tween table should consist of a list of frames in the same form as the
+untweened pos property above, which the engine will interpolate between,
+and optionally a number of properties that control how the interpolation
+takes place. currently only two frames, the first and the last, are
+used, but extra frames are accepted for the sake of forward compatibility.
+Any of the above definition styles can be used here as well in any combination
+supported by the property type.
+
+You need to append `_tween` suffix to the property name to assign a tween table.
 
     {
         pos_tween = {
@@ -9321,7 +9322,7 @@ degradation in older clients).
 All of the properties that can be defined in this way are listed in the next
 section, along with the datatypes they accept.
 
-#### List of particlespawner properties
+### List of particlespawner properties
 All of the properties in this list can be animated with `*_tween` tables
 unless otherwise specified. For example, `jitter` can be tweened by setting
 a `jitter_tween` table instead of (or in addition to) a `jitter` table/value.
@@ -9478,7 +9479,7 @@ texpools.
         },
   }
 
-#### List of animatable texture properties
+### List of animatable texture properties
 
 While animated particlespawner values vary over the course of the particlespawner's
 lifetime, animated texture properties vary over the lifespans of the individual

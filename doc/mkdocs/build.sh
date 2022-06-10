@@ -38,4 +38,4 @@ do
 	echo "- \"$title\": $fname" >> mkdocs.yml
 done
 
-mkdocs build --site-dir ../../public
+mkdocs build --site-dir ./public
