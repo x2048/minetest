@@ -61,10 +61,10 @@ back_to_devel() {
 
 	# Update doc versions
 	sed -i -re "1s/[0-9]+\.[0-9]+\.[0-9]+/$NEXT_VERSION/g" doc/menu_lua_api.txt
-	sed -i -re "1s/[0-9]+\.[0-9]+\.[0-9]+/$NEXT_VERSION/g" doc/client_lua_api.txt
+	sed -i -re "1s/[0-9]+\.[0-9]+\.[0-9]+/$NEXT_VERSION/g" doc/client_lua_api.md
 
 	# Commit
-	git add -f CMakeLists.txt android/build.gradle doc/menu_lua_api.txt doc/client_lua_api.txt
+	git add -f CMakeLists.txt android/build.gradle doc/menu_lua_api.txt doc/client_lua_api.md
 	git commit -m "Continue with $NEXT_VERSION-dev"
 }
 ##################################
