@@ -207,3 +207,4 @@ private:
 	bool m_added_to_shadow_renderer{false};
 	u16 m_cache_transparency_sorting_distance;
 };
+
