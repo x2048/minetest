@@ -66,7 +66,21 @@ void main(void)
 		gl_FragColor = vec4(draw_type, draw_type, draw_type, 1);
 #else
 
-#if ENABLE_TONE_MAPPING
+	color.rgb = floor(color.rgb * 16. + .5) / 16.;
+
+
+	float depth = mapDepth(texture2D(depthmap, uv).r);
+	float edge = 0.0;
+	vec2 pixel_size = vec2(1./1960., 1./1080.);
+	for (float x = -pixel_size.x; x <= pixel_size.x; x += pixel_size.x)
+	for (float y = -pixel_size.y; y <= pixel_size.y; y += pixel_size.y)
+	{
+		edge += abs(mapDepth(texture2D(depthmap, uv + vec2(x,y)).r) - depth) * far / 300.;
+	}
+
+	color.rgb *= 1.0 - min(1.0, edge);
+
+#ifdef ENABLE_TONE_MAPPING
 	color = applyToneMapping(color);
 #endif
 
