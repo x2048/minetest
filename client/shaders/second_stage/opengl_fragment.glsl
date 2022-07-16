@@ -66,6 +66,53 @@ void main(void)
 		gl_FragColor = vec4(draw_type, draw_type, draw_type, 1);
 #else
 
+#define BLOOM
+
+#ifdef BLOOM
+	{
+		vec2 pixel_size = vec2(1./1920., 1./1020.);
+		const float bloom_weight = 1.;
+
+		vec4 bloom = vec4(0.); // bloom value
+		float count = 0.;
+
+		float depth = mapDepth(texture2D(depthmap, uv).r); // own pixel depth
+		float brightness = 0.2126*color.r + 0.7152*color.g + 0.0722*color.b; // own pixel brightness
+
+		float d = 5. + clamp(10. / (1. + 15. * depth), 1., 10.); // blur radius
+		float epsilon = 10. / d / d;
+
+		for (float x = -d; x <= d; x++)
+		for (float y = -d; y <= d; y++) {
+			vec2 _uv = uv + vec2(x,y) * pixel_size * 2.;
+			float sample_depth = mapDepth(texture2D(depthmap, _uv).r); // depth of the sample
+			float l = length(vec2(x, y));
+			if (l > 1. && sample_depth <= depth + 200. / far) {
+				// only accept color from light sources closer to the camera than the pixel we generate
+				vec4 sample = texture2D(rendered, _uv).rgba; // color and alpha of the sample
+				float sample_brightness = 0.2126*sample.r + 0.7152*sample.g + 0.0722*sample.b; // brightness of the sample
+				if (sample_brightness >= 0.3) {
+					vec4 delta = max(vec4(0.), sample.rgba * pow(max(0., 1. - l/d), 0.8) - color.rgba);
+					if (delta.r + delta.g + delta.b > 0.) {
+						// sample emits light
+						bloom.rgba += delta;
+						count += 1.;
+					}
+				}
+			}
+		}
+
+		if (count > 1.)
+			bloom /= count;
+
+		color.rgba += bloom_weight * bloom.rgba;
+		// color = bloom;
+	}
+#endif
+
+
+
+#ifdef CEL_SHADING
 	color.rgb = floor(color.rgb * 16. + .5) / 16.;
 
 
@@ -79,6 +126,7 @@ void main(void)
 	}
 
 	color.rgb *= 1.0 - min(1.0, edge);
+#endif
 
 #ifdef ENABLE_TONE_MAPPING
 	color = applyToneMapping(color);
