@@ -115,11 +115,14 @@ private:
 	scene::ISceneManager *m_smgr{nullptr};
 	video::IVideoDriver *m_driver{nullptr};
 	Client *m_client{nullptr};
-	video::ITexture *shadowMapClientMap{nullptr};
-	video::ITexture *shadowMapClientMapFuture{nullptr};
-	video::ITexture *shadowMapTextureFinal{nullptr};
-	video::ITexture *shadowMapTextureDynamicObjects{nullptr};
-	video::ITexture *shadowMapTextureColors{nullptr};
+	video::ITexture *shadowMapColorMap{nullptr};
+	video::ITexture *shadowMapDepthMap{nullptr};
+	video::ITexture *shadowMapDepthMapFuture{nullptr};
+	video::ITexture *shadowMapColorMapFuture{nullptr};
+	video::ITexture *shadowMapDepthMapObjects{nullptr};
+	video::ITexture *shadowMapDepthMapFinal{nullptr};
+	video::IRenderTarget *shadowMapRenderTargetMap{nullptr};
+	video::IRenderTarget *shadowMapRenderTargetMapDynamicObjects{nullptr};
 
 	std::vector<DirectionalLight> m_light_list;
 	std::vector<NodeToApply> m_shadow_node_array;

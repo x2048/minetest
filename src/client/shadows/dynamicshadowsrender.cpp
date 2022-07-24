@@ -127,8 +127,8 @@ void ShadowRenderer::initialize()
 	}
 
 	m_texture_format = m_shadow_map_texture_32bit
-					   ? video::ECOLOR_FORMAT::ECF_R32F
-					   : video::ECOLOR_FORMAT::ECF_R16F;
+					   ? video::ECOLOR_FORMAT::ECF_D32
+					   : video::ECOLOR_FORMAT::ECF_D24S8;
 
 	m_texture_format_color = m_shadow_map_texture_32bit
 						 ? video::ECOLOR_FORMAT::ECF_G32R32F
@@ -245,12 +245,12 @@ void ShadowRenderer::updateSMTextures()
 			if (m_shadow_map_colored)
 				frt = video::ECOLOR_FORMAT::ECF_A32B32G32R32F;
 			else
-				frt = video::ECOLOR_FORMAT::ECF_R32F;
+				frt = video::ECOLOR_FORMAT::ECF_A8R8G8B8;
 		} else {
 			if (m_shadow_map_colored)
 				frt = video::ECOLOR_FORMAT::ECF_A16B16G16R16F;
 			else
-				frt = video::ECOLOR_FORMAT::ECF_R16F;
+				frt = video::ECOLOR_FORMAT::ECF_A8R8G8B8;
 		}
 		shadowMapTextureFinal = getSMTexture(
 			std::string("shadowmap_final_") + itos(m_shadow_map_texture_size),
