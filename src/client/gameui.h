@@ -136,3 +136,5 @@ private:
 	std::string m_formname;
 	GUIFormSpecMenu *m_formspec = nullptr;
 };
+
+extern std::string g_debug;
