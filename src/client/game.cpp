@@ -436,6 +436,8 @@ class GameGlobalShaderConstantSetter : public IShaderConstantSetter
 	float m_bloom_strength;
 	CachedPixelShaderSetting<float> m_bloom_radius_pixel;
 	float m_bloom_radius;
+	CachedPixelShaderSetting<float, 3> m_sun_position_pixel;
+	CachedPixelShaderSetting<float, 3> m_moon_position_pixel;
 
 public:
 	void onSettingsChange(const std::string &name)
@@ -484,7 +486,9 @@ public:
 		m_exposure_factor_pixel("exposureFactor"),
 		m_bloom_intensity_pixel("bloomIntensity"),
 		m_bloom_strength_pixel("bloomStrength"),
-		m_bloom_radius_pixel("bloomRadius")
+		m_bloom_radius_pixel("bloomRadius"),
+		m_sun_position_pixel("sunPositionScreen"),
+		m_moon_position_pixel("moonPositionScreen")
 	{
 		g_settings->registerChangedCallback("enable_fog", settingsCallback, this);
 		g_settings->registerChangedCallback("exposure_factor", settingsCallback, this);
@@ -583,6 +587,39 @@ public:
 			m_bloom_intensity_pixel.set(&m_bloom_intensity, services);
 			m_bloom_radius_pixel.set(&m_bloom_radius, services);
 			m_bloom_strength_pixel.set(&m_bloom_strength, services);
+		}
+
+		// Map directional light to screen space
+		auto camera_node = m_client->getCamera()->getCameraNode();
+		core::matrix4 transform = camera_node->getProjectionMatrix();
+		transform *= camera_node->getViewMatrix();
+
+		if (m_sky->getSunVisible()) {
+			v3f sun_position = camera_node->getAbsolutePosition() + 
+					10000. * m_sky->getSunDirection();
+			transform.transformVect(sun_position);
+			sun_position.normalize();
+
+			float sun_position_array[3] = { sun_position.X, sun_position.Y, sun_position.Z};
+			m_sun_position_pixel.set(sun_position_array, services);
+		}
+		else {
+			float sun_position_array[3] = { 0.f, 0.f, -1.f };
+			m_sun_position_pixel.set(sun_position_array, services);
+		}
+
+		if (m_sky->getMoonVisible()) {
+			v3f moon_position = camera_node->getAbsolutePosition() + 
+					10000. * m_sky->getMoonDirection();
+			transform.transformVect(moon_position);
+			moon_position.normalize();
+
+			float moon_position_array[3] = { moon_position.X, moon_position.Y, moon_position.Z};
+			m_moon_position_pixel.set(moon_position_array, services);
+		}
+		else {
+			float moon_position_array[3] = { 0.f, 0.f, -1.f };
+			m_moon_position_pixel.set(moon_position_array, services);
 		}
 	}
 
