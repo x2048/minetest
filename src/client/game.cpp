@@ -423,7 +423,9 @@ class GameGlobalShaderConstantSetter : public IShaderConstantSetter
 	CachedPixelShaderSetting<SamplerLayer_t> m_normal_texture;
 	CachedPixelShaderSetting<SamplerLayer_t> m_texture_flags;
 	CachedPixelShaderSetting<float, 3> m_sun_position_pixel;
+	CachedPixelShaderSetting<float> m_sun_brightness_pixel;
 	CachedPixelShaderSetting<float, 3> m_moon_position_pixel;
+	CachedPixelShaderSetting<float> m_moon_brightness_pixel;
 	Client *m_client;
 
 public:
@@ -460,7 +462,9 @@ public:
 		m_normal_texture("normalTexture"),
 		m_texture_flags("textureFlags"),
 		m_sun_position_pixel("sunPositionScreen"),
+		m_sun_brightness_pixel("sunBrightness"),
 		m_moon_position_pixel("moonPositionScreen"),
+		m_moon_brightness_pixel("moonBrightness"),
 		m_client(client)
 	{
 		g_settings->registerChangedCallback("enable_fog", settingsCallback, this);
@@ -550,10 +554,16 @@ public:
 
 			float sun_position_array[3] = { sun_position.X, sun_position.Y, sun_position.Z};
 			m_sun_position_pixel.set(sun_position_array, services);
+
+			float sun_brightness = MYMAX(0.f, daynight_ratio / 1000.f - 1. + 0.75) / 0.75;
+			m_sun_brightness_pixel.set(&sun_brightness, services);
 		}
 		else {
 			float sun_position_array[3] = { 0.f, 0.f, -1.f };
 			m_sun_position_pixel.set(sun_position_array, services);
+
+			float sun_brightness = 0.f;
+			m_sun_brightness_pixel.set(&sun_brightness, services);
 		}
 
 		if (m_sky->getMoonVisible()) {
@@ -564,10 +574,16 @@ public:
 
 			float moon_position_array[3] = { moon_position.X, moon_position.Y, moon_position.Z};
 			m_moon_position_pixel.set(moon_position_array, services);
+
+			float moon_brightness = -MYMIN(0.f, daynight_ratio / 1000.f - 0.55) / 0.55;
+			m_moon_brightness_pixel.set(&moon_brightness, services);
 		}
 		else {
 			float moon_position_array[3] = { 0.f, 0.f, -1.f };
 			m_moon_position_pixel.set(moon_position_array, services);
+
+			float moon_brightness = 0.f;
+			m_moon_brightness_pixel.set(&moon_brightness, services);
 		}
 	}
 };
