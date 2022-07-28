@@ -67,6 +67,8 @@ float decode_light_f(float light_f);
 
 void set_light_table(float gamma);
 
+void set_light_table(float gamma, float min, float max);
+
 #endif // ifndef SERVER
 
 // 0 <= daylight_factor <= 1000

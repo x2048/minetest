@@ -59,6 +59,11 @@ float decode_light_f(float x)
 // Initialize or update the light value tables using the specified gamma
 void set_light_table(float gamma)
 {
+	set_light_table(gamma, 1.0f, 1.0f);
+}
+
+void set_light_table(float gamma, float min, float max)
+{
 // Lighting curve bounding gradients
 	const float alpha = rangelim(g_settings->getFloat("lighting_alpha"), 0.0f, 3.0f);
 	const float beta  = rangelim(g_settings->getFloat("lighting_beta"), 0.0f, 3.0f);
@@ -74,11 +79,11 @@ void set_light_table(float gamma)
 	params.gamma = rangelim(gamma, 0.33f, 3.0f);
 
 // Boundary values should be fixed
-	light_LUT[0] = 0;
-	light_LUT[LIGHT_SUN] = 255;
+	light_LUT[0] = min * 255;
+	light_LUT[LIGHT_SUN] = max * 255;
 
 	for (size_t i = 1; i < LIGHT_SUN; i++) {
-		float brightness = decode_light_f((float)i / LIGHT_SUN);
+		float brightness = decode_light_f(min + (max - min) * (float)i / LIGHT_SUN);
 		// Strictly speaking, rangelim is not necessary here—if the implementation
 		// is conforming. But we don’t want problems in any case.
 		light_LUT[i] = rangelim((s32)(255.0f * brightness), 0, 255);
