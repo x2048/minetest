@@ -227,13 +227,13 @@ static u16 getSmoothLightCombined(const v3s16 &p,
 
 	// Boost brightness around light sources
 	bool skip_ambient_occlusion_day = false;
-	if (decode_light(light_source_max) >= light_day) {
+	if (light_source_max > 0 && decode_light(light_source_max) >= light_day) {
 		light_day = decode_light(light_source_max);
 		skip_ambient_occlusion_day = true;
 	}
 
 	bool skip_ambient_occlusion_night = false;
-	if(decode_light(light_source_max) >= light_night) {
+	if(light_source_max > 0 && decode_light(light_source_max) >= light_night) {
 		light_night = decode_light(light_source_max);
 		skip_ambient_occlusion_night = true;
 	}
