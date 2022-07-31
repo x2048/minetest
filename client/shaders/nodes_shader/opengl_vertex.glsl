@@ -214,8 +214,17 @@ void main(void)
 #endif
 	// The alpha gives the ratio of sunlight in the incoming light.
 	nightRatio = 1.0 - color.a;
-	color.rgb = color.rgb * (color.a * dayLight.rgb +
-		nightRatio * artificialLight.rgb) * 2.0;
+
+	// apply black body color temperature to artificial light
+	float artificialBrightness = mix(max(max(dayLight.r, dayLight.g), dayLight.b), 2. *  max(max(color.r, color.g), color.b), nightRatio);
+	float luminance = dot(artificialLight, vec3(0.3, 0.6, 0.1));
+	float temperature = 4000. + 3000. * pow(artificialBrightness, 1.4);
+	vec3 al = temperature * vec3(-9.41176470588236e-05, 9.41176470588235e-05, 8.72549019607843e-05)
+			+ vec3(1.61176470588235, 0.388235294117647, 0.432843137254902);
+	al = min(artificialLight, al);
+	al *= luminance / dot(al, vec3(0.3, 0.6, 0.1));
+
+	color.rgb = color.rgb * mix(dayLight, al, nightRatio) * 2.0;
 	color.a = 1.0;
 
 	// Emphase blue a bit in darker places
