@@ -66,7 +66,46 @@ void main(void)
 		gl_FragColor = vec4(draw_type, draw_type, draw_type, 1);
 #else
 
-#define BLOOM
+#define DOF
+#ifdef DOF
+	{
+		vec2 pixel_size = vec2(1./1920., 1./1020.);
+
+		float count = 1.;
+
+		float focus_depth =
+				texture2D(depthmap, vec2(0.5, 0.5)).r +
+				texture2D(depthmap, vec2(0.45, 0.45)).r +
+				texture2D(depthmap, vec2(0.45, 0.55)).r +
+				texture2D(depthmap, vec2(0.55, 0.45)).r +
+				texture2D(depthmap, vec2(0.55, 0.55)).r;
+		focus_depth = mapDepth(0.2 * focus_depth);
+		const float sharpness = 3.;
+		const float strength = 5.;
+		float rawdepth = texture2D(depthmap, uv).r;
+		float depth = mapDepth(rawdepth);
+		float delta = clamp(sharpness * abs(depth - focus_depth), 0., 1.);
+
+		float d = strength * delta;
+
+		for (float x = -d; x <= d; x++)
+		for (float y = -d; y <= d; y++) {
+			if (x != 0. || y != 0.) {
+				vec2 _uv = uv + vec2(x,y) * pixel_size;
+				float sample_depth = mapDepth(texture2D(depthmap, _uv).r); // depth of the sample
+				float sample_delta = clamp(sharpness * abs(sample_depth - focus_depth), 0., 1.);
+				if (sample_delta > length(vec2(x,y)) / d && sample_depth < depth + sample_delta) {
+					float gauss_weight = 1. - clamp(length(vec2(x, y)) / d, 0., 1.);
+					gauss_weight = gauss_weight * gauss_weight * (3. - 2. * gauss_weight);
+					color += texture2D(rendered, _uv).rgba * gauss_weight; // color and alpha of the sample
+					count += gauss_weight;
+				}
+			}
+		}
+
+		color /= count;
+	}
+#endif
 
 #ifdef BLOOM
 	{
