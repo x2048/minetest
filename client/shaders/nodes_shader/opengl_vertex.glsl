@@ -218,10 +218,13 @@ void main(void)
 	// apply black body color temperature to artificial light
 	float artificialBrightness = mix(max(max(dayLight.r, dayLight.g), dayLight.b), 2. *  max(max(color.r, color.g), color.b), nightRatio);
 	float luminance = dot(artificialLight, vec3(0.3, 0.6, 0.1));
-	float temperature = 4000. + 3000. * pow(artificialBrightness, 1.4);
-	vec3 al = temperature * vec3(-9.41176470588236e-05, 9.41176470588235e-05, 8.72549019607843e-05)
-			+ vec3(1.61176470588235, 0.388235294117647, 0.432843137254902);
-	al = min(artificialLight, al);
+	float temperature = 3750. + 3250. * pow(artificialBrightness, 0.97);
+
+	// Aproximation of RGB values for specific color temperature in range of 2500K to 7500K
+	// Based on the table at https://andi-siess.de/rgb-to-color-temperature/
+	vec3 al = min(temperature * vec3(0., 9.11765e-05, 1.77451e-04) + vec3(1., 0.403431, -0.161275),
+			temperature * vec3(-7.84314e-05, -6.27451e-05, 7.84314e-06) + vec3(1.50980, 1.40392, 0.941176));
+
 	al *= luminance / dot(al, vec3(0.3, 0.6, 0.1));
 
 	color.rgb = color.rgb * mix(dayLight, al, nightRatio) * 2.0;
