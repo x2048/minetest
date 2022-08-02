@@ -79,7 +79,7 @@ void main(void)
 				texture2D(depthmap, vec2(0.45, 0.55)).r +
 				texture2D(depthmap, vec2(0.55, 0.45)).r +
 				texture2D(depthmap, vec2(0.55, 0.55)).r;
-		focus_depth = mapDepth(0.2 * focus_depth);
+		focus_depth = mapDepth(max(0.2 * focus_depth, 1e-5));
 		const float sharpness = 3.;
 		const float strength = 5.;
 		float rawdepth = texture2D(depthmap, uv).r;
