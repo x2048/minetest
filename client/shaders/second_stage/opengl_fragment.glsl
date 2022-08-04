@@ -6,12 +6,12 @@ uniform sampler2D ShadowMapSampler;
 #define normalmap normalTexture
 #define depthmap ShadowMapSampler
 
-const float far = 20000.;
-const float near = 1.;
+const float far = 1.;
+const float near = 1e-4;
 float mapDepth(float depth)
 {
-	depth = 2. * near / (far + near - depth * (far - near));
-	return clamp(pow(depth, 1./2.5), 0.0, 1.0);
+	depth = near * far / (far - depth * (far - near));
+	return clamp(pow(depth, 1.), 0.0, 1.0);
 }
 
 #if ENABLE_TONE_MAPPING
@@ -46,6 +46,13 @@ vec4 applyToneMapping(vec4 color)
 }
 #endif
 
+float F = far / 110.;
+float A = F / 90. * 1680.;
+
+float getCircleOfConfusion(float depth, float focalDepth) {
+	return A * abs(1. - focalDepth / depth * (depth - F) / (focalDepth - F));
+}
+
 void main(void)
 {
 	vec2 uv = gl_TexCoord[0].st;
@@ -72,38 +79,56 @@ void main(void)
 		vec2 pixel_size = vec2(1./1920., 1./1020.);
 
 		float count = 1.;
-
-		float focus_depth =
+		float focalOffset = 0.05;
+#ifdef DYNAMIC_FOCUS
+		float focalDepth =
 				texture2D(depthmap, vec2(0.5, 0.5)).r +
-				texture2D(depthmap, vec2(0.45, 0.45)).r +
-				texture2D(depthmap, vec2(0.45, 0.55)).r +
-				texture2D(depthmap, vec2(0.55, 0.45)).r +
-				texture2D(depthmap, vec2(0.55, 0.55)).r;
-		focus_depth = mapDepth(max(0.2 * focus_depth, 1e-5));
-		const float sharpness = 3.;
+				texture2D(depthmap, vec2(0.5 - focalOffset, 0.5 - focalOffset)).r +
+				texture2D(depthmap, vec2(0.5 - focalOffset, 0.5 + focalOffset)).r +
+				texture2D(depthmap, vec2(0.5 + focalOffset, 0.5 - focalOffset)).r +
+				texture2D(depthmap, vec2(0.5 + focalOffset, 0.5 + focalOffset)).r;
+		focalDepth = 2 * F;
+#else
+		float focalDepth = far / 300.;
+#endif
+
 		const float strength = 5.;
-		float rawdepth = texture2D(depthmap, uv).r;
-		float depth = mapDepth(rawdepth);
-		float delta = clamp(sharpness * abs(depth - focus_depth), 0., 1.);
 
-		float d = strength * delta;
+		float rawDepth = texture2D(depthmap, uv).r;
+		float depth = mapDepth(rawDepth);
+		float bokeh = length(uv - 0.5);
+		float delta = clamp(getCircleOfConfusion(depth, focalDepth), 0., 1.);
 
-		for (float x = -d; x <= d; x++)
-		for (float y = -d; y <= d; y++) {
+// #define TEST
+#ifdef TEST
+		color.rgb = vec3(depth, focalDepth, delta);
+#else
+		float radius = strength;
+		float steps = clamp(ceil(radius), 1., 5.);
+
+		for (float x = -steps; x <= steps; x++)
+		for (float y = -steps; y <= steps; y++) {
 			if (x != 0. || y != 0.) {
-				vec2 _uv = uv + vec2(x,y) * pixel_size;
-				float sample_depth = mapDepth(texture2D(depthmap, _uv).r); // depth of the sample
-				float sample_delta = clamp(sharpness * abs(sample_depth - focus_depth), 0., 1.);
-				if (sample_delta > length(vec2(x,y)) / d && sample_depth < depth + sample_delta) {
-					float gauss_weight = 1. - clamp(length(vec2(x, y)) / d, 0., 1.);
-					gauss_weight = gauss_weight * gauss_weight * (3. - 2. * gauss_weight);
-					color += texture2D(rendered, _uv).rgba * gauss_weight; // color and alpha of the sample
-					count += gauss_weight;
+				vec2 offset = vec2(x,y) / steps; // 0..1
+				float l = length(offset);
+				if (l < 1.) { // ignore pixels outside the radius
+					vec2 _uv = uv + offset * pixel_size * radius;
+					float rawSampleDepth = texture2D(depthmap, _uv).r;
+					float sampleDepth = mapDepth(rawSampleDepth); // depth of the sample
+					float sample_delta = clamp(getCircleOfConfusion(sampleDepth, focalDepth), 0., 1.); // CoC radius of the sample
+
+					if (sample_delta > l /* we hit sample's CoC */ /*&& sampleDepth < depth + sample_delta / 20.*/ /* ray is not occluded */) {
+						float gauss_weight = 1. - l;
+						gauss_weight = gauss_weight * gauss_weight * (3. - 2. * gauss_weight);
+						color += texture2D(rendered, _uv).rgba * gauss_weight; // color and alpha of the sample
+						count += gauss_weight;
+					}
 				}
 			}
 		}
 
 		color /= count;
+#endif
 	}
 #endif
 
