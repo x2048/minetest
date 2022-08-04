@@ -47,7 +47,7 @@ vec4 applyToneMapping(vec4 color)
 #endif
 
 float F = far / 107.;
-float A = F / 115. * 1680.;
+float A = F / 100. * 1920.;
 
 float getCircleOfConfusion(float depth, float focalDepth) {
 	return A * abs(1. - focalDepth / depth * (depth - F) / (focalDepth - F));
