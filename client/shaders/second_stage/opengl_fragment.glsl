@@ -83,6 +83,7 @@ void main(void)
 
 		const float radius = 5.;
 		float steps = clamp(ceil(radius), 1., 5.);
+		float depth = mapDepth(texture2D(depthmap, uv).r); // depth of the fragment
 
 		for (float x = -steps; x <= steps; x++)
 		for (float y = -steps; y <= steps; y++) {
@@ -91,11 +92,10 @@ void main(void)
 				float l = length(offset);
 				if (l < 1.) { // ignore pixels outside the radius
 					vec2 _uv = uv + offset * pixel_size * radius;
-					float rawSampleDepth = texture2D(depthmap, _uv).r;
-					float sampleDepth = mapDepth(rawSampleDepth); // depth of the sample
-					float sample_delta = clamp(getCircleOfConfusion(sampleDepth, focalDepth), 0., 1.); // CoC radius of the sample
+					float sampleDepth = mapDepth(texture2D(depthmap, _uv).r); // depth of the sample
+					float sampleDelta = clamp(getCircleOfConfusion(sampleDepth, focalDepth), 0., 1.); // CoC radius of the sample
 
-					if (sample_delta > l /* we hit sample's CoC */ ) {
+					if (sampleDelta > l /* we hit sample's CoC */ && sampleDepth < depth * 19. /* sample is not occluded */) {
 						float gauss_weight = 1. - l;
 						gauss_weight = gauss_weight * gauss_weight * (3. - 2. * gauss_weight);
 						color += texture2D(rendered, _uv).rgba * gauss_weight; // color and alpha of the sample
