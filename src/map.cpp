@@ -1114,12 +1114,20 @@ bool Map::isOccluded(const v3s16 &pos_camera, const v3s16 &pos_target,
 	v3f pos_origin_f = intToFloat(pos_camera, BS);
 	u32 count = 0;
 	bool is_valid_position;
+	MapBlock *map_block = nullptr;
+	MapNode node;
 
 	for (; offset < distance + end_offset; offset += step) {
 		v3f pos_node_f = pos_origin_f + direction * offset;
 		v3s16 pos_node = floatToInt(pos_node_f, BS);
+		v3s16 pos_block = getNodeBlockPos(pos_node);
 
-		MapNode node = getNode(pos_node, &is_valid_position);
+		if (map_block == nullptr || pos_block != map_block->getPos())
+			map_block = getBlockNoCreateNoEx(pos_block);
+		if (map_block)
+			node = map_block->getNodeNoCheck(pos_node - map_block->getPosRelative(), &is_valid_position);
+		else
+			is_valid_position = false;
 
 		if (is_valid_position &&
 				!m_nodedef->get(node).light_propagates) {
