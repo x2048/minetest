@@ -1101,21 +1101,25 @@ bool Map::determineAdditionalOcclusionCheck(const v3s16 &pos_camera,
 	return false;
 }
 
-bool Map::isOccluded(const v3s16 &pos_camera, const v3s16 &pos_target,
+bool Map::isOccluded(const v3f &pos_camera, const v3s16 &pos_target,
 	float step, float stepfac, float offset, float end_offset, u32 needed_count)
 {
-	v3f direction = intToFloat(pos_target - pos_camera, BS);
+	v3f direction = intToFloat(pos_target, BS) - pos_camera;
 	float distance = direction.getLength();
 
-	// Normalize direction vector
-	if (distance > 0.0f)
-		direction /= distance;
+	if (distance <= BS) // blocks close to the camera are never occluded
+		return false;
 
-	v3f pos_origin_f = intToFloat(pos_camera, BS);
-	u32 count = 0;
+	// Normalize direction vector
+	direction /= distance;
+
+	v3f pos_origin_f = pos_camera;
+	float weight = 0.0f;
 	bool is_valid_position;
 	MapBlock *map_block = nullptr;
 	MapNode node;
+
+	float target_radius = 0.5 * BS * 1.713 / distance;
 
 	for (; offset < distance + end_offset; offset += step) {
 		v3f pos_node_f = pos_origin_f + direction * offset;
@@ -1131,17 +1135,31 @@ bool Map::isOccluded(const v3s16 &pos_camera, const v3s16 &pos_target,
 
 		if (is_valid_position &&
 				!m_nodedef->get(node).light_propagates) {
-			// Cannot see through light-blocking nodes --> occluded
-			count++;
-			if (count >= needed_count)
+			
+			v3f camera_to_node = intToFloat(pos_node, BS) - pos_camera;
+			// calculate overlap of current node with the target
+			float node_distance = camera_to_node.dotProduct(direction);
+			float node_radius= 0.5 * BS / node_distance;
+			float offset = (camera_to_node - direction * node_distance).getLength() / node_distance;
+			float delta = core::clamp(node_radius - offset, -target_radius, target_radius); // recalculate relative to the target
+
+			// if node fully covers the target, it's occluded
+			if (delta == target_radius)
 				return true;
+
+			// if node partially covers the target, calculate the ratio
+			if (delta > -target_radius) {
+				weight += M_1_PI * (std::acos(delta / target_radius) + 0.5 * sqrt(target_radius * target_radius - delta * delta) * delta);
+				if (weight >= needed_count)
+					return true;
+			}
 		}
 		step *= stepfac;
 	}
 	return false;
 }
 
-bool Map::isBlockOccluded(MapBlock *block, v3s16 cam_pos_nodes)
+bool Map::isBlockOccluded(MapBlock *block, v3f cam_pos)
 {
 	// Check occlusion for center and all 8 corners of the mapblock
 	// Overshoot a little for less flickering
@@ -1181,15 +1199,15 @@ bool Map::isBlockOccluded(MapBlock *block, v3s16 cam_pos_nodes)
 
 	// Additional occlusion check, see comments in that function
 	v3s16 check;
-	if (determineAdditionalOcclusionCheck(cam_pos_nodes, block->getBox(), check)) {
+	if (determineAdditionalOcclusionCheck(floatToInt(cam_pos, BS), block->getBox(), check)) {
 		// node is always on a side facing the camera, end_offset can be lower
-		if (!isOccluded(cam_pos_nodes, check, step, stepfac, start_offset,
+		if (!isOccluded(cam_pos, check, step, stepfac, start_offset,
 				-1.0f, needed_count))
 			return false;
 	}
 
 	for (const v3s16 &dir : dir9) {
-		if (!isOccluded(cam_pos_nodes, pos_blockcenter + dir, step, stepfac,
+		if (!isOccluded(cam_pos, pos_blockcenter + dir, step, stepfac,
 				start_offset, end_offset, needed_count))
 			return false;
 	}

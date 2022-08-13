@@ -32,6 +32,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "modifiedstate.h"
 #include "util/container.h"
 #include "util/metricsbackend.h"
+#include "util/numeric.h"
 #include "nodetimer.h"
 #include "map_settings_manager.h"
 #include "debug.h"
@@ -260,7 +261,12 @@ public:
 		Variables
 	*/
 
-	bool isBlockOccluded(MapBlock *block, v3s16 cam_pos_nodes);
+	bool isBlockOccluded(MapBlock *block, v3s16 cam_pos_nodes)
+	{
+		return isBlockOccluded(block, intToFloat(cam_pos_nodes, BS));
+	}
+
+	bool isBlockOccluded(MapBlock *block, v3f cam_pos);
 protected:
 	IGameDef *m_gamedef;
 
@@ -281,6 +287,14 @@ protected:
 	bool determineAdditionalOcclusionCheck(const v3s16 &pos_camera,
 		const core::aabbox3d<s16> &block_bounds, v3s16 &check);
 	bool isOccluded(const v3s16 &pos_camera, const v3s16 &pos_target,
+		float step, float stepfac, float start_offset, float end_offset,
+		u32 needed_count)
+	{
+		return isOccluded(intToFloat(pos_camera, BS), pos_target,
+				step, stepfac, start_offset, end_offset,
+				needed_count);
+	}
+	bool isOccluded(const v3f &pos_camera, const v3s16 &pos_target,
 		float step, float stepfac, float start_offset, float end_offset,
 		u32 needed_count);
 };

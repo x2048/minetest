@@ -252,8 +252,8 @@ void ClientMap::updateDrawList()
 
 	// Uncomment to debug occluded blocks in the wireframe mode
 	// TODO: Include this as a flag for an extended debugging setting
-	// if (occlusion_culling_enabled && m_control.show_wireframe)
-	//    occlusion_culling_enabled = porting::getTimeS() & 1;
+	if (occlusion_culling_enabled && m_control.show_wireframe)
+	   occlusion_culling_enabled = porting::getTimeS() & 1;
 
 	for (const auto &sector_it : m_sectors) {
 		MapSector *sector = sector_it.second;
@@ -312,7 +312,7 @@ void ClientMap::updateDrawList()
 
 			// Occlusion culling
 			if ((!m_control.range_all && d > m_control.wanted_range * BS) ||
-					(occlusion_culling_enabled && isBlockOccluded(block, cam_pos_nodes))) {
+					(occlusion_culling_enabled && isBlockOccluded(block, camera_position))) {
 				blocks_occlusion_culled++;
 				continue;
 			}
