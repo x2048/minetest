@@ -1149,8 +1149,8 @@ bool Map::isOccluded(const v3f &pos_camera, const v3s16 &pos_target,
 
 			// if node partially covers the target, calculate the ratio
 			if (delta > -target_radius) {
-				weight += M_1_PI * (std::acos(delta / target_radius) + 0.5 * sqrt(target_radius * target_radius - delta * delta) * delta);
-				if (weight >= needed_count)
+				weight += MYMIN(target_radius, node_radius) * (delta + target_radius) / target_radius / target_radius;
+				if (weight >= 1.0f)
 					return true;
 			}
 		}
