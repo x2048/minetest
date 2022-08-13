@@ -1115,11 +1115,12 @@ bool Map::isOccluded(const v3f &pos_camera, const v3s16 &pos_target,
 
 	v3f pos_origin_f = pos_camera;
 	float weight = 0.0f;
+	float close_distance = distance / 10.;
 	bool is_valid_position;
 	MapBlock *map_block = nullptr;
 	MapNode node;
 
-	float target_radius = 0.5 * BS * 1.713 / distance;
+	float target_radius = 0.5 * BS * 1.732 / distance;
 
 	for (; offset < distance + end_offset; offset += step) {
 		v3f pos_node_f = pos_origin_f + direction * offset;
@@ -1135,21 +1136,28 @@ bool Map::isOccluded(const v3f &pos_camera, const v3s16 &pos_target,
 
 		if (is_valid_position &&
 				!m_nodedef->get(node).light_propagates) {
-			
-			v3f camera_to_node = intToFloat(pos_node, BS) - pos_camera;
-			// calculate overlap of current node with the target
-			float node_distance = camera_to_node.dotProduct(direction);
-			float node_radius= 0.5 * BS / node_distance;
-			float offset = (camera_to_node - direction * node_distance).getLength() / node_distance;
-			float delta = core::clamp(node_radius - offset, -target_radius, target_radius); // recalculate relative to the target
 
-			// if node fully covers the target, it's occluded
-			if (delta == target_radius)
-				return true;
+			if (offset < close_distance) {
+				v3f camera_to_node = intToFloat(pos_node, BS) - pos_camera;
+				// calculate overlap of current node with the target
+				float node_distance = camera_to_node.dotProduct(direction);
+				float node_radius= 0.5 * BS / node_distance;
+				float offset = (camera_to_node - direction * node_distance).getLength() / node_distance;
+				float delta = core::clamp(node_radius - offset, -target_radius, target_radius); // recalculate relative to the target
 
-			// if node partially covers the target, calculate the ratio
-			if (delta > -target_radius) {
-				weight += MYMIN(target_radius, node_radius) * (delta + target_radius) / target_radius / target_radius;
+				// if node fully covers the target, it's occluded
+				if (delta == target_radius)
+					return true;
+
+				// if node partially covers the target, calculate the ratio
+				if (delta > -target_radius) {
+					weight += MYMIN(target_radius, node_radius) * (delta + target_radius) / target_radius / target_radius;
+					if (weight >= 1.0f)
+						return true;
+				}
+			}
+			else {
+				weight += 0.5;
 				if (weight >= 1.0f)
 					return true;
 			}
