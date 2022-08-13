@@ -1154,6 +1154,9 @@ bool Map::isOccluded(const v3f &pos_camera, const v3s16 &pos_target,
 					return true;
 			}
 		}
+		else if (!map_block || !map_block->mesh) {
+			offset += MYMAX(0, MAP_BLOCKSIZE * BS - step);
+		}
 		step *= stepfac;
 	}
 	return false;
