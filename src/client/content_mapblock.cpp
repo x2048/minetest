@@ -1588,6 +1588,7 @@ void MapblockMeshGenerator::drawNode()
 		default:
 			break;
 	}
+	normals = MESH_NORMAL_ALL;
 	origin = intToFloat(p, BS);
 	if (data->m_smooth_lighting)
 		getSmoothLightFrame();

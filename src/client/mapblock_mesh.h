@@ -29,6 +29,16 @@ class Client;
 class IShaderSource;
 
 /*
+	Mesh normal flags
+ */
+#define MESH_NORMAL_PY (1 << 0)
+#define MESH_NORMAL_NY (1 << 1)
+#define MESH_NORMAL_PX (1 << 2)
+#define MESH_NORMAL_NX (1 << 3)
+#define MESH_NORMAL_PZ (1 << 4)
+#define MESH_NORMAL_NZ (1 << 5)
+#define MESH_NORMAL_ALL (0x3F)
+/*
 	Mesh making stuff
 */
 
@@ -231,6 +241,7 @@ public:
 		return this->m_transparent_buffers;
 	}
 
+	u16 getNormals() const { return m_normals; }
 private:
 	struct AnimationInfo {
 		int frame; // last animation frame
@@ -275,6 +286,8 @@ private:
 	MapBlockBspTree m_bsp_tree;
 	// Ordered list of references to parts of transparent buffers to draw
 	std::vector<PartialMeshBuffer> m_transparent_buffers;
+	// Flags of normals present in the mapblock
+	u16 m_normals;
 };
 
 /*!

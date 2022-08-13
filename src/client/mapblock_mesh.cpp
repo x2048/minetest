@@ -844,6 +844,23 @@ static void getTileInfo(
 	}
 }
 
+static u16 getNormalFlag(v3s16 normal)
+{
+	if (normal.Y > 0)
+		return MESH_NORMAL_PY;
+	if (normal.Y < 0)
+		return MESH_NORMAL_NY;
+	if (normal.X > 0)
+		return MESH_NORMAL_PX;
+	if (normal.X < 0)
+		return MESH_NORMAL_NX;
+	if (normal.Z > 0)
+		return MESH_NORMAL_PZ;
+	if (normal.Z < 0)
+		return MESH_NORMAL_NZ;
+	return MESH_NORMAL_ALL;
+}
+
 /*
 	startpos:
 	translate_dir: unit vector with only one of x, y or z
@@ -855,7 +872,8 @@ static void updateFastFaceRow(
 		v3s16 translate_dir,
 		const v3f &&translate_dir_f,
 		const v3s16 &&face_dir,
-		std::vector<FastFace> &dest)
+		std::vector<FastFace> &dest,
+		u16 &normals)
 {
 	static thread_local const bool waving_liquids =
 		g_settings->getBool("enable_shaders") &&
@@ -933,6 +951,9 @@ static void updateFastFaceRow(
 				if (translate_dir.Z != 0)
 					scale.Z = continuous_tiles_count;
 
+				normals |= getNormalFlag(face_dir_corrected);
+				if (tile.layers[0].isLiquid())
+					normals |= getNormalFlag(-face_dir_corrected);
 				makeFastFace(tile, lights[0], lights[1], lights[2], lights[3],
 						pf, sp, face_dir_corrected, scale, dest);
 				g_profiler->avg("Meshgen: Tiles per face [#]", continuous_tiles_count);
@@ -951,7 +972,7 @@ static void updateFastFaceRow(
 }
 
 static void updateAllFastFaceRows(MeshMakeData *data,
-		std::vector<FastFace> &dest)
+		std::vector<FastFace> &dest, u16 &normals)
 {
 	/*
 		Go through every y,z and get top(y+) faces in rows of x+
@@ -963,7 +984,8 @@ static void updateAllFastFaceRows(MeshMakeData *data,
 				v3s16(1, 0, 0), //dir
 				v3f  (1, 0, 0),
 				v3s16(0, 1, 0), //face dir
-				dest);
+				dest,
+				normals);
 
 	/*
 		Go through every x,y and get right(x+) faces in rows of z+
@@ -975,7 +997,8 @@ static void updateAllFastFaceRows(MeshMakeData *data,
 				v3s16(0, 0, 1), //dir
 				v3f  (0, 0, 1),
 				v3s16(1, 0, 0), //face dir
-				dest);
+				dest,
+				normals);
 
 	/*
 		Go through every y,z and get back(z+) faces in rows of x+
@@ -987,7 +1010,8 @@ static void updateAllFastFaceRows(MeshMakeData *data,
 				v3s16(1, 0, 0), //dir
 				v3f  (1, 0, 0),
 				v3s16(0, 0, 1), //face dir
-				dest);
+				dest,
+				normals);
 }
 
 static void applyTileColor(PreMeshBuffer &pmb)
@@ -1187,7 +1211,8 @@ MapBlockMesh::MapBlockMesh(MeshMakeData *data, v3s16 camera_offset):
 	m_shdrsrc(data->m_client->getShaderSource()),
 	m_animation_force_timer(0), // force initial animation
 	m_last_crack(-1),
-	m_last_daynight_ratio((u32) -1)
+	m_last_daynight_ratio((u32) -1),
+	m_normals(0)
 {
 	for (auto &m : m_mesh)
 		m = new scene::SMesh();
@@ -1217,7 +1242,7 @@ MapBlockMesh::MapBlockMesh(MeshMakeData *data, v3s16 camera_offset):
 	{
 		// 4-23ms for MAP_BLOCKSIZE=16  (NOTE: probably outdated)
 		//TimeTaker timer2("updateAllFastFaceRows()");
-		updateAllFastFaceRows(data, fastfaces_new);
+		updateAllFastFaceRows(data, fastfaces_new, m_normals);
 	}
 	// End of slow part
 
@@ -1250,8 +1275,10 @@ MapBlockMesh::MapBlockMesh(MeshMakeData *data, v3s16 camera_offset):
 	*/
 
 	{
-		MapblockMeshGenerator(data, &collector,
-			data->m_client->getSceneManager()->getMeshManipulator()).generate();
+		MapblockMeshGenerator mmg(data, &collector,
+			data->m_client->getSceneManager()->getMeshManipulator());
+		mmg.generate();
+		m_normals |= mmg.getNormals();
 	}
 
 	/*

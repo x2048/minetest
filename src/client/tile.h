@@ -271,6 +271,19 @@ struct TileLayer
 		return false;
 	}
 
+	bool isLiquid() const
+	{
+		switch (material_type) {
+		case TILE_MATERIAL_LIQUID_OPAQUE:
+		case TILE_MATERIAL_LIQUID_TRANSPARENT:
+		case TILE_MATERIAL_WAVING_LIQUID_BASIC:
+		case TILE_MATERIAL_WAVING_LIQUID_OPAQUE:
+		case TILE_MATERIAL_WAVING_LIQUID_TRANSPARENT:
+			return true;
+		}
+		return false;
+	}
+
 	// Ordered for size, please do not reorder
 
 	video::ITexture *texture = nullptr;

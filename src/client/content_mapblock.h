@@ -144,6 +144,7 @@ public:
 	bool random_offset_Y;
 	int face_num;
 	float plant_height;
+	u16 normals = 0u;
 
 	void drawPlantlikeQuad(float rotation, float quad_offset = 0,
 		bool offset_top_only = false);
@@ -177,4 +178,5 @@ public:
 			scene::IMeshManipulator *mm);
 	void generate();
 	void renderSingle(content_t node, u8 param2 = 0x00);
+	u16 getNormals() const { return normals; }
 };

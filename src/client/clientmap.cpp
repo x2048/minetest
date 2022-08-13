@@ -184,6 +184,24 @@ void ClientMap::getBlocksInViewRange(v3s16 cam_pos_nodes,
 			p_nodes_max.Z / MAP_BLOCKSIZE + 1);
 }
 
+u16 getVisibleNormals(v3s16 camera_pos, v3s16 block_pos)
+{
+	u16 result = 0;
+	if (camera_pos.X < block_pos.X + MAP_BLOCKSIZE)
+		result |= MESH_NORMAL_NX;
+	if (camera_pos.X >= block_pos.X)
+		result |= MESH_NORMAL_PX;
+	if (camera_pos.Y < block_pos.Y + MAP_BLOCKSIZE)
+		result |= MESH_NORMAL_NY;
+	if (camera_pos.Y >= block_pos.Y)
+		result |= MESH_NORMAL_PY;
+	if (camera_pos.Z < block_pos.Z + MAP_BLOCKSIZE)
+		result |= MESH_NORMAL_NZ;
+	if (camera_pos.Z >= block_pos.Z)
+		result |= MESH_NORMAL_PZ;
+	return result;
+}
+
 void ClientMap::updateDrawList()
 {
 	ScopeProfiler sp(g_profiler, "CM::updateDrawList()", SPT_AVG);
@@ -216,6 +234,8 @@ void ClientMap::updateDrawList()
 	u32 blocks_loaded = 0;
 	// Number of blocks with mesh in rendering range
 	u32 blocks_in_range_with_mesh = 0;
+	// Number of blocks skipped by check for normals
+	u32 blocks_facing_away = 0;
 	// Number of blocks occlusion culled
 	u32 blocks_occlusion_culled = 0;
 
@@ -232,7 +252,7 @@ void ClientMap::updateDrawList()
 
 	// Uncomment to debug occluded blocks in the wireframe mode
 	// TODO: Include this as a flag for an extended debugging setting
-	//if (occlusion_culling_enabled && m_control.show_wireframe)
+	// if (occlusion_culling_enabled && m_control.show_wireframe)
 	//    occlusion_culling_enabled = porting::getTimeS() & 1;
 
 	for (const auto &sector_it : m_sectors) {
@@ -278,6 +298,12 @@ void ClientMap::updateDrawList()
 			block->resetUsageTimer();
 			blocks_in_range_with_mesh++;
 
+			if (!(block->mesh->getNormals() & getVisibleNormals(cam_pos_nodes, block->getPosRelative()))) {
+				// Ignore if mesh is facing away from camera
+				++blocks_facing_away;
+				continue;
+			}
+
 			// Frustum culling
 			float d = 0.0;
 			if (!isBlockInSight(block_coord, camera_position,
@@ -303,6 +329,7 @@ void ClientMap::updateDrawList()
 	}
 
 	g_profiler->avg("MapBlock meshes in range [#]", blocks_in_range_with_mesh);
+	g_profiler->avg("MapBlock meshes facing away [#]", blocks_facing_away);
 	g_profiler->avg("MapBlocks occlusion culled [#]", blocks_occlusion_culled);
 	g_profiler->avg("MapBlocks drawn [#]", m_drawlist.size());
 	g_profiler->avg("MapBlocks loaded [#]", blocks_loaded);
@@ -840,6 +867,11 @@ void ClientMap::updateDrawListShadow(v3f shadow_light_pos, v3f shadow_light_dir,
 	v3s16 p_blocks_max;
 	getBlocksInViewRange(cam_pos_nodes, &p_blocks_min, &p_blocks_max, radius + length);
 
+	u16 visible_normals = 
+		(shadow_light_dir.X < 0 ? MESH_NORMAL_NX : MESH_NORMAL_PX) |
+		(shadow_light_dir.Y < 0 ? MESH_NORMAL_NY : MESH_NORMAL_PY) |
+		(shadow_light_dir.Z < 0 ? MESH_NORMAL_NZ : MESH_NORMAL_PZ);
+
 	std::vector<v2s16> blocks_in_range;
 
 	for (auto &i : m_drawlist_shadow) {
@@ -852,6 +884,8 @@ void ClientMap::updateDrawListShadow(v3f shadow_light_pos, v3f shadow_light_dir,
 	u32 blocks_loaded = 0;
 	// Number of blocks with mesh in rendering range
 	u32 blocks_in_range_with_mesh = 0;
+	// Number of blocks skipped by check for normals
+	u32 blocks_facing_away = 0;
 	// Number of blocks occlusion culled
 	u32 blocks_occlusion_culled = 0;
 
@@ -883,6 +917,12 @@ void ClientMap::updateDrawListShadow(v3f shadow_light_pos, v3f shadow_light_dir,
 			// This block is in range. Reset usage timer.
 			block->resetUsageTimer();
 
+			if ((block->mesh->getNormals() & visible_normals) == 0) {
+				// Ignore if mesh is facing towards light;
+				blocks_facing_away++;
+				continue;
+			}
+
 			// Add to set
 			if (m_drawlist_shadow.find(block->getPos()) == m_drawlist_shadow.end()) {
 				block->refGrab();
@@ -892,6 +932,7 @@ void ClientMap::updateDrawListShadow(v3f shadow_light_pos, v3f shadow_light_dir,
 	}
 
 	g_profiler->avg("SHADOW MapBlock meshes in range [#]", blocks_in_range_with_mesh);
+	g_profiler->avg("SHADOW MapBlock meshes facing away [#]", blocks_facing_away);
 	g_profiler->avg("SHADOW MapBlocks occlusion culled [#]", blocks_occlusion_culled);
 	g_profiler->avg("SHADOW MapBlocks drawn [#]", m_drawlist_shadow.size());
 	g_profiler->avg("SHADOW MapBlocks loaded [#]", blocks_loaded);
