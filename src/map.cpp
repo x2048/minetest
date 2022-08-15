@@ -1121,6 +1121,8 @@ bool Map::isOccluded(const v3f &pos_camera, const v3s16 &pos_target,
 	MapNode node;
 
 	float target_radius = 0.5 * BS * 1.732 / distance;
+	float cube_scale = MYMAX(MYMAX(std::abs(direction.X), std::abs(direction.Y)), std::abs(direction.Z));
+	step = BS * cube_scale;
 
 	for (; offset < distance + end_offset; offset += step) {
 		v3f pos_node_f = pos_origin_f + direction * offset;
@@ -1137,35 +1139,31 @@ bool Map::isOccluded(const v3f &pos_camera, const v3s16 &pos_target,
 		if (is_valid_position &&
 				!m_nodedef->get(node).light_propagates) {
 
+			// whole mapblock is a solid
+			if (!map_block->mesh)
+				return true;
+
 			if (offset < close_distance) {
 				v3f camera_to_node = intToFloat(pos_node, BS) - pos_camera;
 				// calculate overlap of current node with the target
 				float node_distance = camera_to_node.dotProduct(direction);
-				float node_radius= 0.5 * BS / node_distance;
-				float offset = (camera_to_node - direction * node_distance).getLength() / node_distance;
-				float delta = core::clamp(node_radius - offset, -target_radius, target_radius); // recalculate relative to the target
+				float node_radius= 0.5 * BS * cube_scale;
+				float delta_sq = (camera_to_node - direction * node_distance).getLengthSQ();
+				float max_delta_sq = (node_radius - node_distance * target_radius);
+				max_delta_sq *= max_delta_sq;
 
 				// if node fully covers the target, it's occluded
-				if (delta == target_radius)
-					return true;
-
-				// if node partially covers the target, calculate the ratio
-				if (delta > -target_radius) {
-					weight += MYMIN(target_radius, node_radius) * (delta + target_radius) / target_radius / target_radius;
-					if (weight >= 1.0f)
-						return true;
-				}
-			}
-			else {
-				weight += 0.5;
-				if (weight >= 1.0f)
+				if (delta_sq <= max_delta_sq)
 					return true;
 			}
+			weight += 0.5;
+			if (weight >= 1.0f)
+				return true;
 		}
 		else if (!map_block || !map_block->mesh) {
 			offset += MYMAX(0, MAP_BLOCKSIZE * BS - step);
 		}
-		step *= stepfac;
+		step = MYMIN(step * stepfac, MAP_BLOCKSIZE * BS * cube_scale);
 	}
 	return false;
 }
