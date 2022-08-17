@@ -1184,6 +1184,15 @@ bool Map::isBlockOccluded(MapBlock *block, v3f cam_pos)
 		v3s16(-1, -1,  1) * bs2,
 		v3s16(-1, -1, -1) * bs2,
 	};
+	static const float bs_sq = BS * BS;
+
+	if (m_occlusion_cache.camera_pos.getDistanceFromSQ(cam_pos) > bs_sq) {
+		m_occlusion_cache.cache.clear();
+		m_occlusion_cache.camera_pos = cam_pos;
+	}
+	auto p = m_occlusion_cache.cache.find(block->getPos());
+	if (p != m_occlusion_cache.cache.end())
+		return p->second;
 
 	v3s16 pos_blockcenter = block->getPosRelative() + (MAP_BLOCKSIZE / 2);
 
@@ -1205,22 +1214,28 @@ bool Map::isBlockOccluded(MapBlock *block, v3f cam_pos)
 	// require at least two solid blocks
 	// this is a HACK, we should think of a more precise algorithm
 	u32 needed_count = 2;
-
+	bool result = true;
 	// Additional occlusion check, see comments in that function
 	v3s16 check;
 	if (determineAdditionalOcclusionCheck(floatToInt(cam_pos, BS), block->getBox(), check)) {
 		// node is always on a side facing the camera, end_offset can be lower
 		if (!isOccluded(cam_pos, check, step, stepfac, start_offset,
 				-1.0f, needed_count))
-			return false;
+			result = false;
 	}
 
-	for (const v3s16 &dir : dir9) {
-		if (!isOccluded(cam_pos, pos_blockcenter + dir, step, stepfac,
-				start_offset, end_offset, needed_count))
-			return false;
+	if (result) {
+		for (const v3s16 &dir : dir9) {
+			if (!isOccluded(cam_pos, pos_blockcenter + dir, step, stepfac,
+					start_offset, end_offset, needed_count)) {
+				result = false;
+				break;
+			}
+		}
 	}
-	return true;
+
+	m_occlusion_cache.cache[block->getPos()] = result;
+	return result;
 }
 
 /*

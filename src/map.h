@@ -116,6 +116,13 @@ public:
 	virtual void onMapEditEvent(const MapEditEvent &event) = 0;
 };
 
+/*Caches occlusion state of the blocks*/
+struct OcclusionCache {
+	v3f camera_pos;
+	std::unordered_map<v3s16, bool> cache;
+};
+
+
 class Map /*: public NodeContainer*/
 {
 public:
@@ -280,6 +287,9 @@ protected:
 
 	// This stores the properties of the nodes on the map.
 	const NodeDefManager *m_nodedef;
+
+	// Stores the occluation state of mapblocks in relation to the camera
+	OcclusionCache m_occlusion_cache;
 
 	// Can be implemented by child class
 	virtual void reportMetrics(u64 save_time_us, u32 saved_blocks, u32 all_blocks) {}
