@@ -57,6 +57,44 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "database/database-postgresql.h"
 #endif
 
+/*
+	MapBlockCache
+*/
+void MapBlockCache::setCamera(v3s16 camera_pos)
+{
+	for (u8 i = 0 ; i < 7; i++)
+		sectors[i].blocks.clear();
+}
+
+static std::pair<v3s16, u8> splitPos(v3s16 relative_pos)
+{
+	u8 sector = 0;
+	if (pos.X < 0) {
+		pos.X = -pos.X;
+		sector |= 4;
+	}
+	if (pos.Y < 0) {
+		pos.Y = -pos.Y;
+		sector |= 2;
+	}
+	if (pos.Z < 0) {
+		pos.Z = -pos.Z;
+		sector |= 1;
+	}
+}
+
+void MapBlockCache::addBlock(MapBlock *block)
+{
+	v3s16 pos = block->getPosRelative() - cached_cam_pos;
+	sectors[sector].addBlock(pos, block);
+}
+
+MapBlock *MapBlockCache::getBlock(v3s16 block_pos)
+{
+	v3s16 pos = block_pos - cached_cam_pos;
+	u8 sector = 0;
+
+}
 
 /*
 	Map

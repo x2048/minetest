@@ -115,6 +115,28 @@ public:
 	virtual void onMapEditEvent(const MapEditEvent &event) = 0;
 };
 
+class MapBlockCache
+{
+public:
+	void setCamera(v3s16 camera_pos);
+	void addBlock(MapBlock *block);
+	MapBlock *getBlock(v3s16 block_pos);
+
+	u8 posToSector();
+private:
+	struct Sector {
+		v3s16 origin;
+		std::vector<MapBlock *> blocks;
+
+		MapBlock *getBlock(v3s16 position);
+		void addBlock(MapBlock *block)
+	};
+
+	std::array<Sector, 8> sectors;
+	v3s16 cached_cam_pos;
+	u32 generation;
+};
+
 class Map /*: public NodeContainer*/
 {
 public:
