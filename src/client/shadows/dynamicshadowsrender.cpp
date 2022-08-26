@@ -140,6 +140,11 @@ void ShadowRenderer::disable()
 		shadowMapTextureColors = nullptr;
 	}
 
+	if (shadowMapClientMapRenderTarget) {
+		m_driver->removeRenderTarget(shadowMapClientMapRenderTarget);
+		shadowMapClientMapRenderTarget = nullptr;
+
+	}
 	if (shadowMapClientMap) {
 		m_driver->removeTexture(shadowMapClientMap);
 		shadowMapClientMap = nullptr;
@@ -148,6 +153,11 @@ void ShadowRenderer::disable()
 	if (shadowMapClientMapFuture) {
 		m_driver->removeTexture(shadowMapClientMapFuture);
 		shadowMapClientMapFuture = nullptr;
+	}
+
+	if (shadowMapClientMapDepthBuffer) {
+		m_driver->removeTexture(shadowMapClientMapDepthBuffer);
+		shadowMapClientMapDepthBuffer = nullptr;
 	}
 
 	for (auto node : m_shadow_node_array)
@@ -272,6 +282,19 @@ void ShadowRenderer::updateSMTextures()
 			m_shadow_map_colored ? m_texture_format_color : m_texture_format,
 			true);
 		assert(shadowMapClientMapFuture != nullptr);
+	}
+
+
+	if (!shadowMapClientMapDepthBuffer) {
+		shadowMapClientMapDepthBuffer = getSMTexture(
+			std::string("shadow_depth_") + itos(m_shadow_map_texture_size),
+			m_shadow_map_texture_32bit ? video::ECF_D32 : video::ECF_D16,
+			true);
+		assert(shadowMapClientMapDepthBuffer != nullptr);
+	}
+
+	if (!shadowMapClientMapRenderTarget) {
+		shadowMapClientMapRenderTarget = m_driver->addRenderTarget();
 	}
 
 	if (m_shadow_map_colored && !shadowMapTextureColors) {

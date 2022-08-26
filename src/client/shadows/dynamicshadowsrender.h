@@ -117,6 +117,8 @@ private:
 	Client *m_client{nullptr};
 	video::ITexture *shadowMapClientMap{nullptr};
 	video::ITexture *shadowMapClientMapFuture{nullptr};
+	video::ITexture *shadowMapClientMapDepthBuffer{nullptr};
+	video::IRenderTarget *shadowMapClientMapRenderTarget{nullptr};
 	video::ITexture *shadowMapTextureFinal{nullptr};
 	video::ITexture *shadowMapTextureDynamicObjects{nullptr};
 	video::ITexture *shadowMapTextureColors{nullptr};
