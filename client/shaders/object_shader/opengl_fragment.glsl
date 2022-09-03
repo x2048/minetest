@@ -427,14 +427,24 @@ void main(void)
 			shadow_color = mix(vec3(0.0), shadow_color, min(cosLight, self_shadow_cutoff_cosine)/self_shadow_cutoff_cosine);
 		}
 
-		shadow_int *= f_adj_shadow_strength;
+		float lightSourceStrength = f_adj_shadow_strength;
+		float ambientLightStrength = max(0., 1. - lightSourceStrength);
+
+		vec3 ambientTint = vec3(0.97, 0.95, 1.0);
+		ambientTint /= dot(ambientTint, vec3(0.213, 0.715, 0.072));
+
+		vec3 lightSourceTint = vec3(1.0, 0.95, 0.8);
+		lightSourceTint /= dot(lightSourceTint, vec3(0.213, 0.715, 0.072));
+
+		float lightSourceBoost = 1.5;
+
 
 		// calculate fragment color from components:
 		col.rgb =
 				adjusted_night_ratio * col.rgb + // artificial light
-				(1.0 - adjusted_night_ratio) * ( // natural light
-						col.rgb * (1.0 - shadow_int * (1.0 - shadow_color)) +  // filtered texture color
-						dayLight * shadow_color * shadow_int);                 // reflected filtered sunlight/moonlight
+				(1.0 - adjusted_night_ratio) * col.rgb * ( // natural light
+						ambientTint * ambientLightStrength + // ambient
+						lightSourceBoost * lightSourceTint * max(vec3(1.0 - shadow_int), shadow_color.rgb) * lightSourceStrength); // diffuse
 	}
 #endif
 
