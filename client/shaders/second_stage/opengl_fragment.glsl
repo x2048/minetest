@@ -8,6 +8,9 @@ varying mediump vec2 varTexCoord;
 centroid varying vec2 varTexCoord;
 #endif
 
+const float contrast = 1.0;
+const float brightness = 0.0;
+
 #if ENABLE_TONE_MAPPING
 
 /* Hable's UC2 Tone mapping parameters
@@ -40,10 +43,22 @@ vec4 applyToneMapping(vec4 color)
 }
 #endif
 
+vec3 brightnessContrast(vec3 color, float brightness, float contrast)
+{
+	if (brightness < 0.) {
+		color *= (1. + brightness);
+	}
+	else {
+		color += brightness * (1. - color);
+	}
+	return max((color - 0.5) * contrast + 0.5, vec3(0.));
+}
+
 void main(void)
 {
 	vec2 uv = varTexCoord.st;
 	vec4 color = texture2D(rendered, uv).rgba;
+	color.rgb = brightnessContrast(color.rgb, brightness, contrast);
 
 #if ENABLE_TONE_MAPPING
 	color = applyToneMapping(color);
