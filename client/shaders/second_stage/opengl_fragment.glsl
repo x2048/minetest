@@ -8,6 +8,8 @@ varying mediump vec2 varTexCoord;
 centroid varying vec2 varTexCoord;
 #endif
 
+const vec3 ambientTint = vec3(1.168, 0.993, 0.584); // luminance-corrected (1.0, 0.85, 0.5)
+
 #if ENABLE_TONE_MAPPING
 
 /* Hable's UC2 Tone mapping parameters
@@ -44,6 +46,8 @@ void main(void)
 {
 	vec2 uv = varTexCoord.st;
 	vec4 color = texture2D(rendered, uv).rgba;
+
+	color.rgb *= ambientTint;
 
 #if ENABLE_TONE_MAPPING
 	color = applyToneMapping(color);
