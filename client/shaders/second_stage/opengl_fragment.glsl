@@ -45,12 +45,8 @@ vec4 applyToneMapping(vec4 color)
 
 vec3 brightnessContrast(vec3 color, float brightness, float contrast)
 {
-	if (brightness < 0.) {
-		color *= (1. + brightness);
-	}
-	else {
-		color += brightness * (1. - color);
-	}
+	vec3 increment = color * brightness;
+	color += min(increment, -increment) + max(0., brightness);
 	return max((color - 0.5) * contrast + 0.5, vec3(0.));
 }
 
