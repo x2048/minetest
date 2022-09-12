@@ -54,11 +54,13 @@ void main(void)
 {
 	vec2 uv = varTexCoord.st;
 	vec4 color = texture2D(rendered, uv).rgba;
-	color.rgb = brightnessContrast(color.rgb, brightness, contrast);
 
 #if ENABLE_TONE_MAPPING
 	color = applyToneMapping(color);
 #endif
+
+	// brightness - contrast correction
+	color.rgb = brightnessContrast(color.rgb, brightness, contrast);
 
 	gl_FragColor = vec4(color.rgb, 1.0); // force full alpha to avoid holes in the image.
 }
