@@ -8,4 +8,7 @@ void main(void)
 #else
 	varColor = inVertexColor;
 #endif
+
+	// translate to linear colorspace (approximate)
+	varColor.rgb = pow(varColor.rgb, vec3(2.2));
 }

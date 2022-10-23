@@ -82,9 +82,6 @@ void main(void)
 	vec2 uv = varTexCoord.st;
 	vec4 color = texture2D(rendered, uv).rgba;
 
-	// translate to linear colorspace (approximate)
-	color.rgb = pow(color.rgb, vec3(2.2));
-
 #ifdef ENABLE_BLOOM_DEBUG
 	if (uv.x > 0.5 || uv.y > 0.5)
 #endif

@@ -118,11 +118,14 @@ void main(void)
 	vec4 color = inVertexColor;
 #endif
 
-	color *= emissiveColor;
+	// translate to linear colorspace (approximate)
+	color.rgb = pow(color.rgb, vec3(2.2));
+
+	color *= vec4(pow(emissiveColor.rgb, vec3(2.2)), emissiveColor.a);
 
 	// The alpha gives the ratio of sunlight in the incoming light.
 	nightRatio = 1.0 - color.a;
-	color.rgb = color.rgb * (color.a * dayLight.rgb +
+	color.rgb = color.rgb * (color.a * pow(dayLight.rgb, vec3(2.2)) +
 		nightRatio * artificialLight.rgb) * 2.0;
 	color.a = 1.0;
 

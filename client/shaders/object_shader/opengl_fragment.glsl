@@ -368,6 +368,10 @@ void main(void)
 	vec2 uv = varTexCoord.st;
 
 	vec4 base = texture2D(baseTexture, uv).rgba;
+
+	// translate to linear colorspace (approximate)
+	base.rgb = pow(base.rgb, vec3(2.2));
+
 	// If alpha is zero, we can just discard the pixel. This fixes transparency
 	// on GPUs like GC7000L, where GL_ALPHA_TEST is not implemented in mesa,
 	// and also on GLES 2, where GL_ALPHA_TEST is missing entirely.
