@@ -361,6 +361,13 @@ float getShadow(sampler2D shadowsampler, vec2 smTexCoord, float realDistance)
 #endif
 #endif
 
+const vec3 luminanceFactors = vec3(0.213, 0.715, 0.072);
+
+vec3 normalizeColor(vec3 color)
+{
+	return color / dot(color, luminanceFactors);
+}
+
 
 void main(void)
 {
@@ -432,18 +439,27 @@ void main(void)
 		float lightSourceStrength = f_adj_shadow_strength;
 		float ambientLightStrength = max(0., 1. - lightSourceStrength);
 
-		vec3 ambientTint = vec3(0.97, 0.95, 1.0);
-		ambientTint /= dot(ambientTint, vec3(0.213, 0.715, 0.072));
+		// hardlight tints
+		// vec3 artificialTint = normalizeColor(vec3(1., 231./255., 197./255.));
+		// vec3 ambientTint = normalizeColor(vec3(201./255., 226./255., 1.0));
+		// vec3 lightSourceTint = normalizeColor(vec3(212./255., 235./255., 1.));
 
-		vec3 lightSourceTint = vec3(1.0, 0.95, 0.8);
-		lightSourceTint /= dot(lightSourceTint, vec3(0.213, 0.715, 0.072));
+		// daylight tints
+		// vec3 artificialTint = normalizeColor(vec3(1., 231./255., 197./255.));
+		// vec3 ambientTint = normalizeColor(vec3(201./255., 226./255., 1.0));
+		// vec3 lightSourceTint = normalizeColor(vec3(1.0, 250./255., 244./255.));
 
-		float lightSourceBoost = 1.5;
+		// sunset tints
+		vec3 artificialTint = normalizeColor(vec3(1., 231./255., 197./255.));
+		vec3 ambientTint = normalizeColor(vec3(197./255., 218./255., 1.0));
+		vec3 lightSourceTint = normalizeColor(vec3(1.0, 147./255., 41./255.));
+
+		float lightSourceBoost = 1.44;
 
 
 		// calculate fragment color from components:
 		col.rgb =
-				adjusted_night_ratio * col.rgb + // artificial light
+				artificialTint * lightSourceBoost * adjusted_night_ratio * col.rgb + // artificial light
 				(1.0 - adjusted_night_ratio) * col.rgb * ( // natural light
 						ambientTint * ambientLightStrength + // ambient
 						lightSourceBoost * lightSourceTint * max(vec3(1.0 - shadow_int), shadow_color.rgb) * lightSourceStrength); // diffuse
