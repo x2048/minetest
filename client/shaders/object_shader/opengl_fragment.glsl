@@ -445,14 +445,14 @@ void main(void)
 		// vec3 lightSourceTint = normalizeColor(vec3(212./255., 235./255., 1.));
 
 		// daylight tints
-		// vec3 artificialTint = normalizeColor(vec3(1., 231./255., 197./255.));
-		// vec3 ambientTint = normalizeColor(vec3(201./255., 226./255., 1.0));
-		// vec3 lightSourceTint = normalizeColor(vec3(1.0, 250./255., 244./255.));
+		vec3 artificialTint = normalizeColor(vec3(1., 231./255., 197./255.));
+		vec3 ambientTint = normalizeColor(vec3(201./255., 226./255., 1.0));
+		vec3 lightSourceTint = normalizeColor(vec3(1.0, 250./255., 244./255.));
 
 		// sunset tints
-		vec3 artificialTint = normalizeColor(vec3(1., 231./255., 197./255.));
-		vec3 ambientTint = normalizeColor(vec3(197./255., 218./255., 1.0));
-		vec3 lightSourceTint = normalizeColor(vec3(1.0, 147./255., 41./255.));
+		// vec3 artificialTint = normalizeColor(vec3(1., 231./255., 197./255.));
+		// vec3 ambientTint = normalizeColor(vec3(197./255., 218./255., 1.0));
+		// vec3 lightSourceTint = normalizeColor(vec3(1.0, 147./255., 41./255.));
 
 		float lightSourceBoost = 1.44;
 
