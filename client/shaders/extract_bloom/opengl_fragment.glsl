@@ -42,15 +42,31 @@ float noise(vec3 uvd) {
 float sampleVolumetricLight(vec2 uv, vec3 lightVec, float rawDepth)
 {
 	lightVec = 0.5 * lightVec / lightVec.z + 0.5;
-	float samples = 20.;
+	const float samples = 30.;
 	float result = texture2D(depthmap, uv).r < 1. ? 0.0 : 1.0;
 	float bias = noise(vec3(uv, rawDepth));
 	vec2 samplepos;
 	for (float i = 1.; i < samples; i++) {
 		samplepos = mix(uv, lightVec.xy, (i + bias) / samples);
-		result += texture2D(depthmap, samplepos).r < 1. ? 0.0 : 1.0;
+		if (min(samplepos.x, samplepos.y) > 0. && max(samplepos.x, samplepos.y) < 1.)
+			result += texture2D(depthmap, samplepos).r < 1. ? 0.0 : 1.0;
 	}
 	return result / samples;
+}
+
+vec3 lightToColor(float intensity)
+{
+	float temperature = 3750. + 3250. * pow(intensity, 0.25);
+
+	// Aproximation of RGB values for specific color temperature in range of 2500K to 7500K
+	// Based on the table at https://andi-siess.de/rgb-to-color-temperature/
+	vec3 color = min(temperature * vec3(0., 9.11765e-05, 1.77451e-04) + vec3(1., 0.403431, -0.161275),
+			temperature * vec3(-7.84314e-05, -6.27451e-05, 7.84314e-06) + vec3(1.50980, 1.40392, 0.941176));
+
+	// scale the color for more saturation
+	color = 1. - 2. * (1. - color);
+	color /= dot(color, vec3(0.213, 0.715, 0.072));
+	return color;
 }
 
 void main(void)
@@ -69,22 +85,33 @@ void main(void)
 	float rawDepth = texture2D(depthmap, uv).r;
 	float depth = mapDepth(rawDepth);
 	vec3 lookDirection = normalize(vec3(uv.x * 2. - 1., uv.y * 2. - 1., 1. / tan(36. / 180. * 3.141596)));
-	vec3 lightSourceTint = vec3(1.0, 0.95, 0.6);
-	lightSourceTint /= dot(lightSourceTint, vec3(0.213, 0.715, 0.072));
-	vec3 lightColor = dayLight * lightSourceTint;
+	vec3 lightSourceTint = vec3(1.0, 0.98, 0.4);
 	float lightFactor = 0.;
-	const float sunBoost = 3.;
+	const float sunBoost = 12.0;
 	const float moonBoost = 0.33;
 
+	vec3 sourcePosition = vec3(-1., -1., -1);
+	float boost = 0.;
+	float brightness = 0.;
 	if (sunPositionScreen.z > 0. && sunBrightness > 0.) {
-		lightFactor = sunBoost * sunBrightness * sampleVolumetricLight(uv, sunPositionScreen, rawDepth) *
-				(0.2 * pow(clamp(dot(sunPositionScreen, vec3(0., 0., 1.)), 0.0, 0.7), 2.5) + 0.8 * pow(max(0., dot(sunPositionScreen, lookDirection)), 8.));
+		boost = sunBoost;
+		brightness = sunBrightness;
+		sourcePosition = sunPositionScreen;
 	}
 	else if (moonPositionScreen.z > 0. && moonBrightness > 0.) {
-		lightFactor = moonBoost * moonBrightness * sampleVolumetricLight(uv, moonPositionScreen, rawDepth) *
-				(0.2 * pow(clamp(dot(moonPositionScreen, vec3(0., 0., 1.)), 0.0, 0.7), 2.5) + 0.8 * pow(max(0., dot(moonPositionScreen, lookDirection)), 8.));
+		lightSourceTint = vec3(0.4, 0.9, 1.);
+		boost = moonBoost;
+		brightness = moonBrightness * 0.33;
+		sourcePosition = moonPositionScreen;
 	}
-	color.rgb += lightColor * lightFactor;
+
+	lightSourceTint /= dot(lightSourceTint, vec3(0.213, 0.715, 0.072));
+	vec3 lightColor = dayLight * lightSourceTint;
+
+	lightFactor = brightness * sampleVolumetricLight(uv, sourcePosition, rawDepth) *
+			(0.05 * pow(clamp(dot(sourcePosition, vec3(0., 0., 1.)), 0.0, 0.7), 2.5) + 0.95 * pow(max(0., dot(sourcePosition, lookDirection)), 16.));
+
+	color.rgb = mix(color.rgb, boost * lightSourceTint * pow(lightToColor(lightFactor * 1.1), vec3(2.)), lightFactor);
 
 	// if (sunPositionScreen.z < 0.)
 	// 	color.rg += 1. - clamp(abs((2. * uv.xy - 1.) - sunPositionScreen.xy / sunPositionScreen.z) * 1000., 0., 1.);
