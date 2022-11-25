@@ -380,7 +380,7 @@ void ShadowRenderer::update(video::ITexture *outputTarget)
 void ShadowRenderer::drawDebug()
 {
 	/* this code just shows shadows textures in screen and in ONLY for debugging*/
-	#if 0
+	#if 1
 	// this is debug, ignore for now.
 	if (shadowMapTextureFinal)
 		m_driver->draw2DImage(shadowMapTextureFinal,
@@ -467,6 +467,11 @@ void ShadowRenderer::renderShadowObjects(
 		if (shadow_node.shadowMode == ESM_RECEIVE)
 			continue;
 
+		auto smgr = shadow_node.node->getSceneManager();
+		auto saved_pass = smgr->getCurrentRenderPass();
+
+		smgr->setCurrentRenderPass(scene::ESNRP_SHADOW);
+
 		// render other objects
 		u32 n_node_materials = shadow_node.node->getMaterialCount();
 		std::vector<s32> BufferMaterialList;
@@ -509,6 +514,8 @@ void ShadowRenderer::renderShadowObjects(
 			current_mat.FrontfaceCulling = BufferMaterialCullingList[m].second;
 			current_mat.BlendOperation = BufferBlendOperationList[m];
 		}
+
+		smgr->setCurrentRenderPass(saved_pass);
 
 	} // end for caster shadow nodes
 }

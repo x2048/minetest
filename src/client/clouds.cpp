@@ -95,7 +95,8 @@ void Clouds::render()
 
 	video::IVideoDriver* driver = SceneManager->getVideoDriver();
 
-	if(SceneManager->getSceneNodeRenderPass() != scene::ESNRP_TRANSPARENT)
+	if(SceneManager->getSceneNodeRenderPass() != scene::ESNRP_TRANSPARENT &&
+		SceneManager->getSceneNodeRenderPass() != scene::ESNRP_SHADOW)
 	//if(SceneManager->getSceneNodeRenderPass() != scene::ESNRP_SOLID)
 		return;
 

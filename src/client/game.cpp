@@ -1148,6 +1148,10 @@ bool Game::startup(bool *kill,
 
 	m_rendering_engine->initialize(client, hud);
 
+	auto shadows = RenderingEngine::get_shadow_renderer();
+	if (shadows && clouds)
+		shadows->addNodeToShadowList(clouds);
+
 	return true;
 }
 
