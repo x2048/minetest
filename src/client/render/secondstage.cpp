@@ -173,7 +173,7 @@ RenderStep *addPostProcessing(RenderPipeline *pipeline, RenderStep *previousStep
 
 	// final post-processing
 	shader_id = client->getShaderSource()->getShader("second_stage", TILE_MATERIAL_PLAIN, NDT_MESH);
-	PostProcessingStep *effect = pipeline->createOwned<PostProcessingStep>(shader_id, std::vector<u8> { TEXTURE_COLOR, TEXTURE_BLOOM_UP });
+	PostProcessingStep *effect = pipeline->createOwned<PostProcessingStep>(shader_id, std::vector<u8> { TEXTURE_COLOR, TEXTURE_BLOOM_UP, TEXTURE_DEPTH});
 	pipeline->addStep(effect);
 	effect->setBilinearFilter(1, true); // apply filter to the bloom
 	effect->setRenderSource(buffer);

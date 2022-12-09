@@ -12,6 +12,10 @@ uniform float sunBrightness;
 uniform vec3 moonPositionScreen;
 uniform float moonBrightness;
 
+uniform float bloomIntensity;
+
+uniform vec3 v_LightDirection;
+
 uniform vec3 dayLight;
 
 #ifdef GL_ES
@@ -21,11 +25,12 @@ centroid varying vec2 varTexCoord;
 #endif
 
 
-const float far = 1000.;
+const float far = 20000.;
 const float near = 1.;
 float mapDepth(float depth)
 {
-	return min(1., 1. / (1.00001 - depth) / far);
+	depth = 2. * depth - 1.;
+	return 2. * near * far / (far + near - depth * (far - near));
 }
 
 float noise(vec3 uvd) {
@@ -47,19 +52,52 @@ float sampleVolumetricLight(vec2 uv, vec3 lightVec, float rawDepth)
 	return result / samples;
 }
 
-vec3 lightToColor(float intensity)
+vec3 getInscatteredLight(vec2 uv, float depth, float rawDepth)
 {
-	float temperature = 3750. + 3250. * pow(intensity, 0.25);
+	vec3 lookDirection = normalize(vec3(uv.x * 2. - 1., uv.y * 2. - 1., 1.));
+	vec3 lightSourceTint = dayLight;
+	vec3 moonLight = dayLight * vec3(0.4, 0.9, 1.) * 0.33;
 
-	// Aproximation of RGB values for specific color temperature in range of 2500K to 7500K
-	// Based on the table at https://andi-siess.de/rgb-to-color-temperature/
-	vec3 color = min(temperature * vec3(0., 9.11765e-05, 1.77451e-04) + vec3(1., 0.403431, -0.161275),
-			temperature * vec3(-7.84314e-05, -6.27451e-05, 7.84314e-06) + vec3(1.50980, 1.40392, 0.941176));
+	vec3 sourcePosition = sunPositionScreen;
 
-	// scale the color for more saturation
-	color = 1. - 2. * (1. - color);
-	color /= dot(color, vec3(0.213, 0.715, 0.072));
-	return color;
+	if (moonPositionScreen.z > 0. && moonBrightness > 0.)
+		sourcePosition = moonPositionScreen;
+
+	sourcePosition = normalize(sourcePosition);
+
+	// Based on talk at 2002 Game Developers Conference by Naty Hoffman and Arcot J. Preetham
+	const float beta_r0 = 1e-5; // Rayleigh scattering beta
+	const float beta_m0 = 1e-7; // Mie scattering beta
+	const float depth_scale = 50.; // how many world meters in 0.1 game node
+	const float depth_offset = 0.; // how far does the fog start
+	const float max_depth = 1e5;  // in world meters
+
+	// These factors are calculated based on expected value of scattering factor of 1e-5
+	// for Nitrogen at 532nm (green), 2e25 molecules/m3 in atmosphere
+	const vec3 beta_r0_l = vec3(3.3362176e-01, 8.75378289198826e-01, 1.95342379700656) * beta_r0; // wavelength-dependent scattering
+
+	vec3 f_ex = exp(-(beta_r0_l + beta_m0) * clamp(depth_scale * (depth - depth_offset), 0., max_depth));
+
+	const float atmosphere_height = 20000.; // height of the atmosphere
+	const float g = 0.; // Henyey-Greenstein anisotropy factor 0..1
+
+	// sun/moon light at the ground level, after going through the atmosphere
+	vec3 light_ground = (sunBrightness * dayLight + moonBrightness * moonLight) * exp(-beta_r0_l * atmosphere_height / (1e-20 - dot(v_LightDirection, vec3(0., 1., 0.))));
+
+	float cos_theta = dot(sourcePosition, lookDirection);
+	float cos_omega = pow(clamp(dot(sourcePosition, vec3(0., 0., 1.)), 0.0, 0.7), 2.5);
+
+	float phase_r = 3. / 16. / 3.14 * (1. + cos_theta * cos_theta);
+	float phase_m = 1. / 4. / 3.14 * pow(1. - g, 2.) / pow(1. + g * (g - 2. * cos_theta), 1.5);
+
+	vec3 beta_r =  beta_r0_l * phase_r;
+	float beta_m = beta_m0 * phase_m;
+	float ray_sample = sampleVolumetricLight(uv, sourcePosition, rawDepth);
+
+	vec3 l_in = light_ground * (1. - f_ex);
+	l_in *= (beta_r + beta_m) / (beta_r0_l + beta_m0);
+
+	return l_in / bloomIntensity * (1. - 0.8 * cos_omega * (1. - sampleVolumetricLight(uv, sourcePosition, rawDepth)));
 }
 
 void main(void)
@@ -77,34 +115,8 @@ void main(void)
 
 	float rawDepth = texture2D(depthmap, uv).r;
 	float depth = mapDepth(rawDepth);
-	vec3 lookDirection = normalize(vec3(uv.x * 2. - 1., uv.y * 2. - 1., 1. / tan(36. / 180. * 3.141596)));
-	vec3 lightSourceTint = vec3(1.0, 0.98, 0.4);
-	float lightFactor = 0.;
-	const float sunBoost = 12.0;
-	const float moonBoost = 0.33;
 
-	vec3 sourcePosition = vec3(-1., -1., -1);
-	float boost = 0.;
-	float brightness = 0.;
-	if (sunPositionScreen.z > 0. && sunBrightness > 0.) {
-		boost = sunBoost;
-		brightness = sunBrightness;
-		sourcePosition = sunPositionScreen;
-	}
-	else if (moonPositionScreen.z > 0. && moonBrightness > 0.) {
-		lightSourceTint = vec3(0.4, 0.9, 1.);
-		boost = moonBoost;
-		brightness = moonBrightness * 0.33;
-		sourcePosition = moonPositionScreen;
-	}
-
-	lightSourceTint /= dot(lightSourceTint, vec3(0.213, 0.715, 0.072));
-	vec3 lightColor = dayLight * lightSourceTint;
-
-	lightFactor = brightness * sampleVolumetricLight(uv, sourcePosition, rawDepth) *
-			(0.05 * pow(clamp(dot(sourcePosition, vec3(0., 0., 1.)), 0.0, 0.7), 2.5) + 0.95 * pow(max(0., dot(sourcePosition, lookDirection)), 16.));
-
-	color.rgb = mix(color.rgb, boost * lightSourceTint * pow(lightToColor(lightFactor * 1.1), vec3(2.)), lightFactor);
+	color += getInscatteredLight(uv, depth, rawDepth);
 
 	// if (sunPositionScreen.z < 0.)
 	// 	color.rg += 1. - clamp(abs((2. * uv.xy - 1.) - sunPositionScreen.xy / sunPositionScreen.z) * 1000., 0., 1.);

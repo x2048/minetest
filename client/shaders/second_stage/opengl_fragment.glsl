@@ -1,16 +1,36 @@
 #define rendered texture0
 #define bloom texture1
+#define depthmap texture2
 
 uniform sampler2D rendered;
 uniform sampler2D bloom;
+uniform sampler2D depthmap;
+
 uniform mediump float exposureFactor;
 uniform lowp float bloomIntensity;
+
+uniform vec3 sunPositionScreen;
+uniform float sunBrightness;
+uniform vec3 moonPositionScreen;
+uniform float moonBrightness;
+
+uniform vec3 v_LightDirection;
+
+uniform vec3 dayLight;
 
 #ifdef GL_ES
 varying mediump vec2 varTexCoord;
 #else
 centroid varying vec2 varTexCoord;
 #endif
+
+const float far = 20000.;
+const float near = 1.;
+float mapDepth(float depth)
+{
+	depth = 2. * depth - 1.;
+	return 2. * near * far / (far + near - depth * (far - near));
+}
 
 #ifdef ENABLE_BLOOM
 
@@ -59,10 +79,31 @@ vec4 applyToneMapping(vec4 color)
 }
 #endif
 
+vec3 getScatteringDecay(vec2 uv, float depth)
+{
+	// Based on talk at 2002 Game Developers Conference by Naty Hoffman and Arcot J. Preetham
+	const float beta_r0 = 1e-5; // Rayleigh scattering beta
+	const float beta_m0 = 1e-7; // Mie scattering beta
+	const float depth_scale = 50.; // how many world meters in 0.1 game node
+	const float depth_offset = 0.; // how far does the fog start
+	const float max_depth = 1e5;  // in world meters
+
+	// These factors are calculated based on expected value of scattering factor of 1e-5
+	// for Nitrogen at 532nm (green), 2e25 molecules/m3 in atmosphere
+	// 
+	const vec3 beta_r0_l = vec3(3.3362176e-01, 8.75378289198826e-01, 1.95342379700656) * beta_r0; // wavelength-dependent scattering
+
+	vec3 f_ex = exp(-(beta_r0_l + beta_m0) * clamp(depth_scale * (depth - depth_offset), 0., max_depth));
+
+	return f_ex;
+}
+
 void main(void)
 {
 	vec2 uv = varTexCoord.st;
 	vec4 color = texture2D(rendered, uv).rgba;
+	float rawDepth = texture2D(depthmap, uv).r;
+	float depth = mapDepth(rawDepth);
 
 	// translate to linear colorspace (approximate)
 	color.rgb = pow(color.rgb, vec3(2.2));
@@ -74,8 +115,8 @@ void main(void)
 		color.rgb *= exposureFactor;
 	}
 
-
 #ifdef ENABLE_BLOOM
+	color.rgb *= getScatteringDecay(uv, depth);
 	color = applyBloom(color, uv);
 #endif
 
