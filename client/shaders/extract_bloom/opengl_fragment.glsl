@@ -66,7 +66,7 @@ vec3 getInscatteredLight(vec2 uv, float depth, float rawDepth)
 	sourcePosition = normalize(sourcePosition);
 
 	// Based on talk at 2002 Game Developers Conference by Naty Hoffman and Arcot J. Preetham
-	const float beta_r0 = 1e-5; // Rayleigh scattering beta
+	const float beta_r0 = 1.5e-5; // Rayleigh scattering beta
 	const float beta_m0 = 1e-7; // Mie scattering beta
 	const float depth_scale = 50.; // how many world meters in 0.1 game node
 	const float depth_offset = 0.; // how far does the fog start
@@ -85,7 +85,8 @@ vec3 getInscatteredLight(vec2 uv, float depth, float rawDepth)
 	vec3 light_ground = (sunBrightness * dayLight + moonBrightness * moonLight) * exp(-beta_r0_l * atmosphere_height / (1e-20 - dot(v_LightDirection, vec3(0., 1., 0.))));
 
 	float cos_theta = dot(sourcePosition, lookDirection);
-	float cos_omega = pow(clamp(dot(sourcePosition, vec3(0., 0., 1.)), 0.0, 0.7), 2.5);
+	// float cos_omega = pow(clamp(dot(sourcePosition, vec3(0., 0., 1.)), 0.0, 0.7), 2.5);
+	float cos_omega = clamp(dot(sourcePosition, vec3(0., 0., 1.)), 0., 1.);
 
 	float phase_r = 3. / 16. / 3.14 * (1. + cos_theta * cos_theta);
 	float phase_m = 1. / 4. / 3.14 * pow(1. - g, 2.) / pow(1. + g * (g - 2. * cos_theta), 1.5);
@@ -97,7 +98,7 @@ vec3 getInscatteredLight(vec2 uv, float depth, float rawDepth)
 	vec3 l_in = light_ground * (1. - f_ex);
 	l_in *= (beta_r + beta_m) / (beta_r0_l + beta_m0);
 
-	return l_in / bloomIntensity * (1. - 0.8 * cos_omega * (1. - sampleVolumetricLight(uv, sourcePosition, rawDepth)));
+	return l_in / bloomIntensity * (0.2 * (1. - cos_omega) + cos_omega * sampleVolumetricLight(uv, sourcePosition, rawDepth));
 }
 
 void main(void)

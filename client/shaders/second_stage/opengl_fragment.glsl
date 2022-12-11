@@ -82,7 +82,7 @@ vec4 applyToneMapping(vec4 color)
 vec3 getScatteringDecay(vec2 uv, float depth)
 {
 	// Based on talk at 2002 Game Developers Conference by Naty Hoffman and Arcot J. Preetham
-	const float beta_r0 = 1e-5; // Rayleigh scattering beta
+	const float beta_r0 = 1.5e-5; // Rayleigh scattering beta
 	const float beta_m0 = 1e-7; // Mie scattering beta
 	const float depth_scale = 50.; // how many world meters in 0.1 game node
 	const float depth_offset = 0.; // how far does the fog start
