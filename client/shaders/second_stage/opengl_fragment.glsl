@@ -41,7 +41,7 @@ vec4 applyBloom(vec4 color, vec2 uv)
 	if (uv.x > 0.5 && uv.y < 0.5)
 		return vec4(light, color.a);
 	if (uv.x < 0.5)
-		return light;
+		return vec4(light, 1.0);
 #endif
 	color.rgb = mix(color.rgb, light, bloomIntensity);
 	return color;
@@ -82,8 +82,8 @@ vec4 applyToneMapping(vec4 color)
 vec3 getScatteringDecay(vec2 uv, float depth)
 {
 	// Based on talk at 2002 Game Developers Conference by Naty Hoffman and Arcot J. Preetham
-	const float beta_r0 = 1.5e-5; // Rayleigh scattering beta
-	const float beta_m0 = 1e-7; // Mie scattering beta
+	const float beta_r0 = 1e-5; // Rayleigh scattering beta
+	const float beta_m0 = 1e-9; // Mie scattering beta
 	const float depth_scale = 50.; // how many world meters in 0.1 game node
 	const float depth_offset = 0.; // how far does the fog start
 	const float max_depth = 1e5;  // in world meters

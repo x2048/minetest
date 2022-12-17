@@ -54,14 +54,16 @@ public:
 
 	float getBrightness() { return m_brightness; }
 
+	static video::SColor black;
+
 	const video::SColor &getBgColor() const
 	{
-		return m_visible ? m_bgcolor : m_fallback_bg_color;
+		return black;
 	}
 
 	const video::SColor &getSkyColor() const
 	{
-		return m_visible ? m_skycolor : m_fallback_bg_color;
+		return black;
 	}
 
 	void setSunVisible(bool sun_visible) { m_sun_params.visible = sun_visible; }

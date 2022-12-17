@@ -60,6 +60,8 @@ static inline void disableTextureFiltering(video::SMaterial &mat)
 	mat.setFlag(video::E_MATERIAL_FLAG::EMF_ANISOTROPIC_FILTER, false);
 }
 
+video::SColor Sky::black(0u);
+
 Sky::Sky(s32 id, RenderingEngine *rendering_engine, ITextureSource *tsrc, IShaderSource *ssrc) :
 		scene::ISceneNode(rendering_engine->get_scene_manager()->getRootSceneNode(),
 			rendering_engine->get_scene_manager(), id)
@@ -234,28 +236,28 @@ void Sky::render()
 
 		// Draw far cloudy fog thing blended with skycolor
 		if (m_visible) {
-			driver->setMaterial(m_materials[1]);
-			for (u32 j = 0; j < 4; j++) {
-				vertices[0] = video::S3DVertex(-1, -0.02, -1, 0, 0, 1, m_bgcolor, t, t);
-				vertices[1] = video::S3DVertex( 1, -0.02, -1, 0, 0, 1, m_bgcolor, o, t);
-				vertices[2] = video::S3DVertex( 1, 0.45, -1, 0, 0, 1, m_skycolor, o, o);
-				vertices[3] = video::S3DVertex(-1, 0.45, -1, 0, 0, 1, m_skycolor, t, o);
-				for (video::S3DVertex &vertex : vertices) {
-					if (j == 0)
-						// Don't switch
-						{}
-					else if (j == 1)
-						// Switch from -Z (south) to +X (east)
-						vertex.Pos.rotateXZBy(90);
-					else if (j == 2)
-						// Switch from -Z (south) to -X (west)
-						vertex.Pos.rotateXZBy(-90);
-					else
-						// Switch from -Z (south) to +Z (north)
-						vertex.Pos.rotateXZBy(-180);
-				}
-				driver->drawIndexedTriangleList(&vertices[0], 4, indices, 2);
-			}
+			// driver->setMaterial(m_materials[1]);
+			// for (u32 j = 0; j < 4; j++) {
+			// 	vertices[0] = video::S3DVertex(-1, -0.02, -1, 0, 0, 1, m_bgcolor, t, t);
+			// 	vertices[1] = video::S3DVertex( 1, -0.02, -1, 0, 0, 1, m_bgcolor, o, t);
+			// 	vertices[2] = video::S3DVertex( 1, 0.45, -1, 0, 0, 1, m_skycolor, o, o);
+			// 	vertices[3] = video::S3DVertex(-1, 0.45, -1, 0, 0, 1, m_skycolor, t, o);
+			// 	for (video::S3DVertex &vertex : vertices) {
+			// 		if (j == 0)
+			// 			// Don't switch
+			// 			{}
+			// 		else if (j == 1)
+			// 			// Switch from -Z (south) to +X (east)
+			// 			vertex.Pos.rotateXZBy(90);
+			// 		else if (j == 2)
+			// 			// Switch from -Z (south) to -X (west)
+			// 			vertex.Pos.rotateXZBy(-90);
+			// 		else
+			// 			// Switch from -Z (south) to +Z (north)
+			// 			vertex.Pos.rotateXZBy(-180);
+			// 	}
+			// 	driver->drawIndexedTriangleList(&vertices[0], 4, indices, 2);
+			// }
 		}
 
 		// Draw stars before sun and moon to be behind them
@@ -301,36 +303,36 @@ void Sky::render()
 		if (m_visible) {
 			driver->setMaterial(m_materials[1]);
 
-			for (u32 j = 0; j < 4; j++) {
-				video::SColor c = cloudyfogcolor;
-				vertices[0] = video::S3DVertex(-1, -1.0,  -1, 0, 0, 1, c, t, t);
-				vertices[1] = video::S3DVertex( 1, -1.0,  -1, 0, 0, 1, c, o, t);
-				vertices[2] = video::S3DVertex( 1, -0.02, -1, 0, 0, 1, c, o, o);
-				vertices[3] = video::S3DVertex(-1, -0.02, -1, 0, 0, 1, c, t, o);
-				for (video::S3DVertex &vertex : vertices) {
-					if (j == 0)
-						// Don't switch
-						{}
-					else if (j == 1)
-						// Switch from -Z (south) to +X (east)
-						vertex.Pos.rotateXZBy(90);
-					else if (j == 2)
-						// Switch from -Z (south) to -X (west)
-						vertex.Pos.rotateXZBy(-90);
-					else
-						// Switch from -Z (south) to +Z (north)
-						vertex.Pos.rotateXZBy(-180);
-				}
-				driver->drawIndexedTriangleList(&vertices[0], 4, indices, 2);
-			}
+			// for (u32 j = 0; j < 4; j++) {
+			// 	video::SColor c = cloudyfogcolor;
+			// 	vertices[0] = video::S3DVertex(-1, -1.0,  -1, 0, 0, 1, c, t, t);
+			// 	vertices[1] = video::S3DVertex( 1, -1.0,  -1, 0, 0, 1, c, o, t);
+			// 	vertices[2] = video::S3DVertex( 1, -0.02, -1, 0, 0, 1, c, o, o);
+			// 	vertices[3] = video::S3DVertex(-1, -0.02, -1, 0, 0, 1, c, t, o);
+			// 	for (video::S3DVertex &vertex : vertices) {
+			// 		if (j == 0)
+			// 			// Don't switch
+			// 			{}
+			// 		else if (j == 1)
+			// 			// Switch from -Z (south) to +X (east)
+			// 			vertex.Pos.rotateXZBy(90);
+			// 		else if (j == 2)
+			// 			// Switch from -Z (south) to -X (west)
+			// 			vertex.Pos.rotateXZBy(-90);
+			// 		else
+			// 			// Switch from -Z (south) to +Z (north)
+			// 			vertex.Pos.rotateXZBy(-180);
+			// 	}
+			// 	driver->drawIndexedTriangleList(&vertices[0], 4, indices, 2);
+			// }
 
-			// Draw bottom far cloudy fog thing in front of sun, moon and stars
-			video::SColor c = cloudyfogcolor;
-			vertices[0] = video::S3DVertex(-1, -1.0, -1, 0, 1, 0, c, t, t);
-			vertices[1] = video::S3DVertex( 1, -1.0, -1, 0, 1, 0, c, o, t);
-			vertices[2] = video::S3DVertex( 1, -1.0, 1, 0, 1, 0, c, o, o);
-			vertices[3] = video::S3DVertex(-1, -1.0, 1, 0, 1, 0, c, t, o);
-			driver->drawIndexedTriangleList(&vertices[0], 4, indices, 2);
+			// // Draw bottom far cloudy fog thing in front of sun, moon and stars
+			// video::SColor c = cloudyfogcolor;
+			// vertices[0] = video::S3DVertex(-1, -1.0, -1, 0, 1, 0, c, t, t);
+			// vertices[1] = video::S3DVertex( 1, -1.0, -1, 0, 1, 0, c, o, t);
+			// vertices[2] = video::S3DVertex( 1, -1.0, 1, 0, 1, 0, c, o, o);
+			// vertices[3] = video::S3DVertex(-1, -1.0, 1, 0, 1, 0, c, t, o);
+			// driver->drawIndexedTriangleList(&vertices[0], 4, indices, 2);
 		}
 	}
 }
