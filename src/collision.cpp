@@ -241,17 +241,6 @@ collisionMoveResult collisionMoveSimple(Environment *env, IGameDef *gamedef,
 	/*
 		Calculate new velocity
 	*/
-	if (dtime > 0.5f) {
-		if (!time_notification_done) {
-			time_notification_done = true;
-			infostream << "collisionMoveSimple: maximum step interval exceeded,"
-					" lost movement details!"<<std::endl;
-		}
-		dtime = 0.5f;
-	} else {
-		time_notification_done = false;
-	}
-
 	v3f dpos_f = (*speed_f + accel_f * 0.5f * dtime) * dtime;
 	v3f newpos_f = *pos_f + dpos_f;
 	*speed_f += accel_f * dtime;
