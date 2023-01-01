@@ -1131,10 +1131,8 @@ void ClientMap::updateDrawListShadow(v3f shadow_light_pos, v3f shadow_light_dir,
 			block->resetUsageTimer();
 
 			// Add to set
-			if (m_drawlist_shadow.find(block->getPos()) == m_drawlist_shadow.end()) {
-				block->refGrab();
-				m_drawlist_shadow[block->getPos()] = block;
-			}
+			block->refGrab();
+			m_drawlist_shadow.emplace_back(block->getPos(), block);
 		}
 	}
 

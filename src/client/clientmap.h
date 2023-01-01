@@ -182,7 +182,7 @@ private:
 	bool m_needs_update_transparent_meshes = true;
 
 	std::vector<std::pair<v3s16, MapBlock*>> m_drawlist;
-	std::map<v3s16, MapBlock*> m_drawlist_shadow;
+	std::vector<std::pair<v3s16, MapBlock*>> m_drawlist_shadow;
 	bool m_needs_update_drawlist;
 
 	std::set<v2s16> m_last_drawn_sectors;
