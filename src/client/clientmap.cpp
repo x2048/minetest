@@ -80,8 +80,7 @@ ClientMap::ClientMap(
 		rendering_engine->get_scene_manager(), id),
 	m_client(client),
 	m_rendering_engine(rendering_engine),
-	m_control(control),
-	m_drawlist(MapBlockComparer(v3s16(0,0,0)))
+	m_control(control)
 {
 
 	/*
@@ -291,7 +290,6 @@ void ClientMap::updateDrawList()
 	}
 
 	v3s16 camera_block = getContainerPos(cam_pos_nodes, MAP_BLOCKSIZE);
-	m_drawlist = std::map<v3s16, MapBlock*, MapBlockComparer>(MapBlockComparer(camera_block));
 
 	auto is_frustum_culled = m_client->getCamera()->getFrustumCuller();
 
@@ -385,7 +383,7 @@ void ClientMap::updateDrawList()
 		if (mesh) {
 			// Add to set
 			block->refGrab();
-			m_drawlist[block_coord] = block;
+			m_drawlist.emplace_back(block_coord, block);
 		}
 
 		// Decide which sides to traverse next or to block away
@@ -677,12 +675,14 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 		}
 	}
 
+	if (is_transparent_pass)
+		std::reverse(draw_order.begin(), draw_order.end());
+
 	// Capture draw order for all solid meshes
 	for (auto &lists : grouped_buffers.lists) {
 		for (MeshBufList &list : lists) {
-			// iterate in reverse to draw closest blocks first
-			for (auto it = list.bufs.rbegin(); it != list.bufs.rend(); ++it) {
-				draw_order.emplace_back(it->first, it->second, it != list.bufs.rbegin());
+			for (auto it = list.bufs.begin(); it != list.bufs.end(); ++it) {
+				draw_order.emplace_back(it->first, it->second, it != list.bufs.begin());
 			}
 		}
 	}

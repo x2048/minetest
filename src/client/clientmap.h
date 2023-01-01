@@ -145,25 +145,6 @@ private:
 	// update the vertex order in transparent mesh buffers
 	void updateTransparentMeshBuffers();
 
-
-	// Orders blocks by distance to the camera
-	class MapBlockComparer
-	{
-	public:
-		MapBlockComparer(const v3s16 &camera_block) : m_camera_block(camera_block) {}
-
-		bool operator() (const v3s16 &left, const v3s16 &right) const
-		{
-			auto distance_left = left.getDistanceFromSQ(m_camera_block);
-			auto distance_right = right.getDistanceFromSQ(m_camera_block);
-			return distance_left > distance_right || (distance_left == distance_right && left > right);
-		}
-
-	private:
-		v3s16 m_camera_block;
-	};
-
-
 	// reference to a mesh buffer used when rendering the map.
 	struct DrawDescriptor {
 		v3s16 m_pos;
@@ -200,7 +181,7 @@ private:
 	v3s16 m_camera_offset;
 	bool m_needs_update_transparent_meshes = true;
 
-	std::map<v3s16, MapBlock*, MapBlockComparer> m_drawlist;
+	std::vector<std::pair<v3s16, MapBlock*>> m_drawlist;
 	std::map<v3s16, MapBlock*> m_drawlist_shadow;
 	bool m_needs_update_drawlist;
 
