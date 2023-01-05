@@ -1556,6 +1556,12 @@ void MapBlockMesh::consolidateTransparentBuffers()
 	}
 }
 
+void MapBlockMesh::mergeInto(MultiBlockMesh *other)
+{
+	m_merge_id = other->getId();
+	m_merge_position = other->getPos();
+}
+
 video::SColor encode_light(u16 light, u8 emissive_light)
 {
 	// Get components
@@ -1610,4 +1616,23 @@ u8 get_solid_sides(MeshMakeData *data)
 	}
 
 	return result;
+}
+
+MultiBlockMesh::MultiBlockMesh(v3s16 _pos, u64 _id)
+	: pos(_pos), id(_id)
+{
+	for (u16 i = 0; i < MAX_TILE_LAYERS; i++)
+		meshes[i] = new MultiMesh();
+}
+
+MultiBlockMesh::~MultiBlockMesh()
+{
+	for (u16 i = 0; i < MAX_TILE_LAYERS; i++)
+		meshes[i]->drop();
+}
+
+void MultiBlockMesh::mergeBlock(MapBlockMesh *mesh)
+{
+	for (u16 i = 0; i < MAX_TILE_LAYERS; i++)
+		meshes[i]->merge(mesh->getMesh(i));
 }

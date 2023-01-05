@@ -24,6 +24,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "voxel.h"
 #include <array>
 #include <map>
+#include "multimesh.h"
 
 class Client;
 class IShaderSource;
@@ -35,6 +36,7 @@ class IShaderSource;
 
 class MapBlock;
 struct MinimapMapblock;
+class MultiBlockMesh;
 
 struct MeshMakeData
 {
@@ -237,6 +239,10 @@ public:
 		return this->m_transparent_buffers;
 	}
 
+	void mergeInto(MultiBlockMesh *other);
+	void unmerge() { m_merge_id = 0; }
+	std::pair<u64, v3s16> getMergePosition() const { return std::make_pair(m_merge_id, m_merge_position); }
+
 private:
 	struct AnimationInfo {
 		int frame; // last animation frame
@@ -245,6 +251,8 @@ private:
 	};
 
 	scene::IMesh *m_mesh[MAX_TILE_LAYERS];
+	v3s16 m_merge_position;
+	u64 m_merge_id { 0 };
 	MinimapMapblock *m_minimap_mapblock;
 	ITextureSource *m_tsrc;
 	IShaderSource *m_shdrsrc;
@@ -345,3 +353,44 @@ void getNodeTile(MapNode mn, const v3s16 &p, const v3s16 &dir, MeshMakeData *dat
 /// Bits:
 /// 0 0 -Z +Z -X +X -Y +Y
 u8 get_solid_sides(MeshMakeData *data);
+
+/**
+ * Contains mesh for several mapblocks, merged together dynamically
+ */
+class MultiBlockMesh
+{
+public:
+	MultiBlockMesh(v3s16 pos, u64 id);
+	virtual ~MultiBlockMesh();
+
+	/**
+	 * Returns position of this multiblock mesh
+	 * 
+	 * @return v3s16 
+	 */
+	v3s16 getPos() const { return pos; }
+
+	/**
+	 * Returns ID of this mapblock mesh
+	 * 
+	 * @return u64 
+	 */
+	u64 getId() const { return id; }
+
+	/**
+	 * Get multimesh for the given tile layer
+	 * 
+	 * @param index 
+	 * @return MultiMesh* 
+	 */
+	MultiMesh *getMultiMesh(u16 index)
+	{
+		return meshes.at(index);
+	}
+
+	void mergeBlock(MapBlockMesh *mesh);
+private:
+	v3s16 pos;
+	u64 id;
+	std::array<MultiMesh *, MAX_TILE_LAYERS> meshes;
+};

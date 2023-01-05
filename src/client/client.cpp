@@ -546,6 +546,7 @@ void Client::step(float dtime)
 		int num_processed_meshes = 0;
 		std::vector<v3s16> blocks_to_ack;
 		bool force_update_shadows = false;
+		int clusters_removed = 0;
 		MeshUpdateResult r;
 		while (m_mesh_update_manager.getNextResult(r))
 		{
@@ -556,6 +557,11 @@ void Client::step(float dtime)
 
 			MapBlock *block = m_env.getMap().getBlockNoCreateNoEx(r.p);
 			if (block) {
+				if (block->mesh) {
+					auto merge_pos = block->mesh->getMergePosition();
+					if (merge_pos.first && m_env.getClientMap().removeCluster(merge_pos.second))
+						++clusters_removed;
+				}
 				// Delete the old mesh
 				delete block->mesh;
 				block->mesh = nullptr;
@@ -607,6 +613,8 @@ void Client::step(float dtime)
 		auto shadow_renderer = RenderingEngine::get_shadow_renderer();
 		if (shadow_renderer && force_update_shadows)
 			shadow_renderer->setForceUpdateShadowMap();
+
+		g_profiler->add("MapBlock clusters removed [#]", clusters_removed);
 	}
 
 	/*

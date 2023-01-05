@@ -59,6 +59,7 @@ struct MeshBufListList
 class Client;
 class ITextureSource;
 class PartialMeshBuffer;
+class MultiBlockMesh;
 
 /*
 	ClientMap
@@ -139,6 +140,7 @@ public:
 	f32 getCameraFov() const { return m_camera_fov; }
 
 	void onSettingChanged(const std::string &name);
+	bool removeCluster(v3s16 pos) { return m_multi_meshes.erase(pos) > 0;}
 
 private:
 
@@ -202,6 +204,7 @@ private:
 
 	std::map<v3s16, MapBlock*, MapBlockComparer> m_drawlist;
 	std::map<v3s16, MapBlock*> m_drawlist_shadow;
+	std::map<v3s16, std::unique_ptr<MultiBlockMesh>> m_multi_meshes;
 	bool m_needs_update_drawlist;
 
 	std::set<v2s16> m_last_drawn_sectors;

@@ -600,6 +600,61 @@ void ClientMap::updateDrawList()
 		g_profiler->avg("MapBlocks drawn [#]", m_drawlist.size());
 		g_profiler->avg("MapBlocks loaded [#]", blocks_loaded);
 	}
+
+	{
+		TimeTaker merge_meshes("Merge meshes");
+		v3s16 cam_pos_nodes = floatToInt(m_camera_position, BS);
+		v3s16 camera_block = getContainerPos(cam_pos_nodes, MAP_BLOCKSIZE);
+
+		int merged_meshes = 0;
+		for (auto p : m_drawlist) {
+			auto block = p.second;
+			auto mesh = block->mesh;
+
+			// the block has no mesh or has already been merged
+			if (!mesh)
+				continue;
+
+			auto merge_position = mesh->getMergePosition();
+
+			auto matching_cluster = merge_position.first ? m_multi_meshes.find(merge_position.second) : m_multi_meshes.end();
+			if (matching_cluster != m_multi_meshes.end() && matching_cluster->second.get()->getId() != merge_position.first)
+				matching_cluster = m_multi_meshes.end();
+
+			// the block is too close to the camera, abandon
+			if (block->getPos().getDistanceFromSQ(camera_block) < 3) {
+				if (matching_cluster != m_multi_meshes.end())
+					m_multi_meshes.erase(matching_cluster);
+				continue;
+			}
+			else if (matching_cluster != m_multi_meshes.end()) {
+				continue;
+			}
+
+			v3s16 pos = block->getPos();
+			v3s16 rounded_pos = pos / 2 * 2;
+			
+			MultiBlockMesh *cluster = nullptr;
+			auto find_result = m_multi_meshes.find(rounded_pos);
+			if (find_result == m_multi_meshes.end()) {
+				auto insert_result = m_multi_meshes.emplace(rounded_pos, new MultiBlockMesh(rounded_pos, m_client->getEnv().getFrameTime()));
+				assert(insert_result.second);
+				cluster = insert_result.first->second.get();
+			}
+			else {
+				cluster = find_result->second.get();
+			}
+
+			cluster->mergeBlock(mesh);
+			mesh->mergeInto(cluster);
+			merged_meshes++;
+			if (merged_meshes == 100)
+				break;
+		}
+
+		g_profiler->add("MapBlocks merged [#]", merged_meshes);
+		g_profiler->avg("MapBlock merge meshes [ms]", merge_meshes.getTimerTime());
+	}	
 }
 
 void ClientMap::touchMapBlocks()
@@ -661,6 +716,7 @@ void ClientMap::touchMapBlocks()
 			blocks_in_range_with_mesh++;
 		}
 	}
+
 	g_profiler->avg("MapBlock meshes in range [#]", blocks_in_range_with_mesh);
 	g_profiler->avg("MapBlocks loaded [#]", blocks_loaded);
 }
@@ -714,6 +770,7 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 	MeshBufListList grouped_buffers;
 	std::vector<DrawDescriptor> draw_order;
 	video::SMaterial previous_material;
+	std::unordered_map<v3s16, bool> clusters;
 
 	auto is_frustum_culled = m_client->getCamera()->getFrustumCuller();
 
@@ -738,9 +795,10 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 
 		float d = camera_position.getDistanceFrom(block_pos_r);
 		d = MYMAX(0,d - BLOCK_MAX_RADIUS);
+		auto merge_position = block->mesh->getMergePosition();
 
 		// Mesh animation
-		if (pass == scene::ESNRP_SOLID) {
+		if (pass == scene::ESNRP_SOLID && merge_position.first == 0) {
 			// Pretty random but this should work somewhat nicely
 			bool faraway = d >= BS * 50;
 			if (block_mesh->isAnimationForced() || !faraway ||
@@ -767,8 +825,37 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 		else {
 			// otherwise, group buffers across meshes
 			// using MeshBufListList
+			MapBlockMesh *mapBlockMesh = block->mesh;
+			assert(mapBlockMesh);
+
+			MultiBlockMesh* cluster = nullptr;
+			auto render_pos = block_pos;
+
+			// the mesh is potentially clustered
+			if (merge_position.first) {
+				auto p = m_multi_meshes.find(merge_position.second);
+				if (p != m_multi_meshes.end() && p->second.get()->getId() == merge_position.first) {
+						// cluster matches the mesh, draw the cluster instead or skip
+						auto c = clusters.find(merge_position.second);
+						if (c == clusters.end()) {
+							cluster = p->second.get();
+							render_pos = cluster->getPos();
+							clusters[merge_position.second] = true;
+						}
+						else {
+							continue;
+						}
+				}
+				else {
+					// cluster does not match the mesh, unmerge
+					mapBlockMesh->unmerge();
+				}
+			}
+
 			for (int layer = 0; layer < MAX_TILE_LAYERS; layer++) {
-				scene::IMesh *mesh = block_mesh->getMesh(layer);
+				scene::IMesh *mesh = mapBlockMesh->getMesh(layer);
+				if (cluster)
+					mesh = cluster->getMultiMesh(layer);
 				assert(mesh);
 
 				u32 c = mesh->getMeshBufferCount();
@@ -784,7 +871,7 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 							errorstream << "Block [" << analyze_block(block)
 									<< "] contains an empty meshbuf" << std::endl;
 
-						grouped_buffers.add(buf, block_pos, layer);
+						grouped_buffers.add(buf, render_pos, layer);
 					}
 				}
 			}
@@ -1072,6 +1159,7 @@ void ClientMap::renderMapShadows(video::IVideoDriver *driver,
 
 	MeshBufListList grouped_buffers;
 	std::vector<DrawDescriptor> draw_order;
+	std::unordered_map<v3s16, bool> clusters;
 
 
 	int count = 0;
@@ -1112,9 +1200,36 @@ void ClientMap::renderMapShadows(video::IVideoDriver *driver,
 			// using MeshBufListList
 			MapBlockMesh *mapBlockMesh = block->mesh;
 			assert(mapBlockMesh);
+			auto merge_position = mapBlockMesh->getMergePosition();
+
+			MultiBlockMesh* cluster = nullptr;
+			auto render_pos = block_pos;
+
+			// the mesh is potentially clustered
+			if (merge_position.first) {
+				auto p = m_multi_meshes.find(merge_position.second);
+				if (p != m_multi_meshes.end() && p->second.get()->getId() == merge_position.first) {
+						// cluster matches the mesh, draw the cluster instead or skip
+						auto c = clusters.find(merge_position.second);
+						if (c == clusters.end()) {
+							cluster = p->second.get();
+							render_pos = cluster->getPos();
+							clusters[merge_position.second] = true;
+						}
+						else {
+							continue;
+						}
+				}
+				else {
+					// cluster does not match the mesh, unmerge
+					mapBlockMesh->unmerge();
+				}
+			}
 
 			for (int layer = 0; layer < MAX_TILE_LAYERS; layer++) {
 				scene::IMesh *mesh = mapBlockMesh->getMesh(layer);
+				if (cluster)
+					mesh = cluster->getMultiMesh(layer);
 				assert(mesh);
 
 				u32 c = mesh->getMeshBufferCount();
