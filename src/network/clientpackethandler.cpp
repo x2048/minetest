@@ -44,6 +44,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "gettext.h"
 #include "skyparams.h"
 #include <memory>
+#include "profiler.h"
 
 void Client::handleCommand_Deprecated(NetworkPacket* pkt)
 {
@@ -292,6 +293,9 @@ void Client::handleCommand_NodemetaChanged(NetworkPacket *pkt)
 
 void Client::handleCommand_BlockData(NetworkPacket* pkt)
 {
+	static WallTimeProfiler profiler("Client receive blocks time %", 1000, 20);
+	profiler.start();
+
 	// Ignore too small packet
 	if (pkt->getSize() < 6)
 		return;
@@ -330,11 +334,15 @@ void Client::handleCommand_BlockData(NetworkPacket* pkt)
 	if (m_localdb) {
 		ServerMap::saveBlock(block, m_localdb);
 	}
+	profiler.finish();
 
+	static WallTimeProfiler queue_profiler("Client queue blocks time %", 1000, 20);
+	queue_profiler.start();
 	/*
 		Add it to mesh update queue and set it to be acknowledged after update.
 	*/
 	addUpdateMeshTaskWithEdge(p, true);
+	queue_profiler.finish();
 }
 
 void Client::handleCommand_Inventory(NetworkPacket* pkt)

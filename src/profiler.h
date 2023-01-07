@@ -28,6 +28,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "threading/mutex_auto_lock.h"
 #include "util/timetaker.h"
 #include "util/numeric.h"      // paging()
+#include "porting.h"
 
 // Global profiler
 class Profiler;
@@ -106,4 +107,47 @@ private:
 	std::string m_name;
 	TimeTaker *m_timer = nullptr;
 	enum ScopeProfilerType m_type;
+};
+
+/// @brief  Reports % wall time spent in specific scope to g_profiler. Not multithreaded.
+/// Usage:
+/// * Create a static instance of WallTimeProfiler and give it a name, configure reporting interval in ms and how many iterations between reports
+/// * Use start() and finish() to capture time
+class WallTimeProfiler
+{
+public:
+	WallTimeProfiler(const std::string &name, u64 report_interval_ms = 1000, u64 report_rate = 100):
+			name(name), report_interval_ms(report_interval_ms), report_rate(report_rate), checkpoint(porting::getTimeUs()), iteration_count(0), time_used(0)
+	{}
+
+	void start()
+	{
+		time_started = porting::getTimeUs();
+	}
+	void finish()
+	{
+		u64 now = porting::getTimeUs();
+
+		time_used += now - time_started;
+
+		iteration_count++;
+		if (iteration_count >= report_rate) {
+			if ((now - checkpoint) / 1000 > report_interval_ms) {
+				g_profiler->avg(name, 100. * time_used / (now - checkpoint));
+				time_used = 0;
+				checkpoint = now;
+			}
+			iteration_count = 0;
+		}
+	}
+private:
+	std::string name;
+	u64 report_interval_ms;
+	u64 report_rate;
+
+	u64 checkpoint;
+	u64 iteration_count {0};
+
+	u64 time_used;
+	u64 time_started;
 };

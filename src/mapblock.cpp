@@ -37,6 +37,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "util/string.h"
 #include "util/serialize.h"
 #include "util/basic_macros.h"
+#include "profiler.h"
 
 static const char *modified_reason_strings[] = {
 	"initial",

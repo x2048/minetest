@@ -73,7 +73,10 @@ MeshUpdateQueue::~MeshUpdateQueue()
 
 bool MeshUpdateQueue::addBlock(Map *map, v3s16 p, bool update_cache, bool ack_block_to_server, bool urgent)
 {
+	static WallTimeProfiler profiler("Client MeshUpdateQueue addBlock mutex wait time %", 1000, 20);
+	profiler.start();
 	MutexAutoLock lock(m_mutex);
+	profiler.finish();
 
 	cleanupCache();
 
@@ -344,10 +347,10 @@ void MeshUpdateManager::updateBlock(Map *map, v3s16 p, bool ack_block_to_server,
 	if (update_neighbors) {
 		if (many_neighbors) {
 			for (v3s16 dp : g_26dirs)
-				m_queue_in.addBlock(map, p + dp, false, false, urgent);
+				m_queue_in.addBlock(map, p + dp, true, false, urgent);
 		} else {
 			for (v3s16 dp : g_6dirs)
-				m_queue_in.addBlock(map, p + dp, false, false, urgent);
+				m_queue_in.addBlock(map, p + dp, true, false, urgent);
 		}
 	}
 	deferUpdate();

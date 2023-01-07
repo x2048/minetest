@@ -803,7 +803,14 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 		}
 	}
 
-	TimeTaker draw("Drawing mesh buffers");
+	// TimeTaker draw("Drawing mesh buffers");
+	static WallTimeProfiler solid_profiler("renderMap(SOLID): draw meshes %", 1000, 10);
+	static WallTimeProfiler transparent_profiler("renderMap(TRANSPARENT): draw meshes %", 1000, 10);
+
+	if (is_transparent_pass)
+		transparent_profiler.start();
+	else
+		solid_profiler.start();
 
 	core::matrix4 m; // Model matrix
 	v3f offset = intToFloat(m_camera_offset, BS);
@@ -855,7 +862,11 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 		vertex_count += buf->getIndexCount();
 	}
 
-	g_profiler->avg(prefix + "draw meshes [ms]", draw.stop(true));
+	if (is_transparent_pass)
+		transparent_profiler.finish();
+	else
+		solid_profiler.finish();
+	//g_profiler->avg(prefix + "draw meshes [ms]", draw.stop(true));
 
 	// Log only on solid pass because values are the same
 	if (pass == scene::ESNRP_SOLID) {
