@@ -71,7 +71,7 @@ MeshUpdateQueue::~MeshUpdateQueue()
 	}
 }
 
-bool MeshUpdateQueue::addBlock(Map *map, v3s16 p, bool ack_block_to_server, bool urgent)
+bool MeshUpdateQueue::addBlock(Map *map, v3s16 p, bool update_cache, bool ack_block_to_server, bool urgent)
 {
 	MutexAutoLock lock(m_mutex);
 
@@ -83,7 +83,7 @@ bool MeshUpdateQueue::addBlock(Map *map, v3s16 p, bool ack_block_to_server, bool
 	*/
 	std::vector<CachedMapBlockData*> cached_blocks;
 	size_t cache_hit_counter = 0;
-	CachedMapBlockData *cached_block = cacheBlock(map, p, FORCE_UPDATE);
+	CachedMapBlockData *cached_block = cacheBlock(map, p, update_cache ? FORCE_UPDATE : SKIP_UPDATE_IF_ALREADY_CACHED);
 	if (!cached_block->data)
 		return false; // nothing to update
 	cached_blocks.reserve(3*3*3);
@@ -336,7 +336,7 @@ void MeshUpdateManager::updateBlock(Map *map, v3s16 p, bool ack_block_to_server,
 	static thread_local const bool many_neighbors =
 			g_settings->getBool("smooth_lighting")
 			&& !g_settings->getFlag("performance_tradeoffs");
-	if (!m_queue_in.addBlock(map, p, ack_block_to_server, urgent)) {
+	if (!m_queue_in.addBlock(map, p, true, ack_block_to_server, urgent)) {
 		warningstream << "Update requested for non-existent block at ("
 				<< p.X << ", " << p.Y << ", " << p.Z << ")" << std::endl;
 		return;
@@ -344,10 +344,10 @@ void MeshUpdateManager::updateBlock(Map *map, v3s16 p, bool ack_block_to_server,
 	if (update_neighbors) {
 		if (many_neighbors) {
 			for (v3s16 dp : g_26dirs)
-				m_queue_in.addBlock(map, p + dp, false, urgent);
+				m_queue_in.addBlock(map, p + dp, false, false, urgent);
 		} else {
 			for (v3s16 dp : g_6dirs)
-				m_queue_in.addBlock(map, p + dp, false, urgent);
+				m_queue_in.addBlock(map, p + dp, false, false, urgent);
 		}
 	}
 	deferUpdate();

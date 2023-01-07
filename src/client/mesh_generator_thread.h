@@ -71,7 +71,7 @@ public:
 
 	// Caches the block at p and its neighbors (if needed) and queues a mesh
 	// update for the block at p
-	bool addBlock(Map *map, v3s16 p, bool ack_block_to_server, bool urgent);
+	bool addBlock(Map *map, v3s16 p, bool update_cache, bool ack_block_to_server, bool urgent);
 
 	// Returned pointer must be deleted
 	// Returns NULL if queue is empty
