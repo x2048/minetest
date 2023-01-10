@@ -300,6 +300,9 @@ void Client::handleCommand_BlockData(NetworkPacket* pkt)
 	*pkt >> p;
 
 	std::string datastring(pkt->getString(6), pkt->getSize() - 6);
+
+	// add to queue here
+
 	std::istringstream istr(datastring, std::ios_base::binary);
 
 	MapSector *sector;
@@ -326,6 +329,8 @@ void Client::handleCommand_BlockData(NetworkPacket* pkt)
 		block->deSerialize(istr, m_server_ser_ver, false);
 		block->deSerializeNetworkSpecific(istr);
 	}
+
+	// receive from queue here
 
 	if (m_localdb) {
 		ServerMap::saveBlock(block, m_localdb);
