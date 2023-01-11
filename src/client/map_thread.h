@@ -19,39 +19,42 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #pragma once
 
-#include "thread.h"
-#include "container.h"
-#include "map.h"
-#include "gamedef.h"
+#include "util/thread.h"
+#include "util/container.h"
 #include "irrlichttypes.h"
 
 #include <string>
 
+class Map;
+class MapBlock;
+class IGameDef;
+
 struct ReceiveBlockRequest {
 	v3s16 pos;
 	std::string block_data;
+	Map *map;
+	IGameDef *gamedef;
 };
 
 struct ReceiveBlockResponse {
 	MapBlock *map_block {nullptr};
-}
+};
 
 /// @brief Background thread responsible for receiving and 
 /// deserializing map blocks
-class MapThread : UpdateThread {
+class MapThread : public UpdateThread {
 public:
-	MapThread(Map *map, IGameDef *gamedef) : UpdateThread("map-update"), map(map), gamedef(gamedef) {}
+	MapThread() : UpdateThread("map-update") {}
 
-	void queueReceiveBlock(v3s16 pos, const std::string &data);
+	void queueReceivedBlock(v3s16 pos, std::string &data, Map *map, IGameDef *gamedef);
 	/// @brief Returns the next block from the receive queue or nullptr if empty
 	MapBlock *getNextReceivedBlock();
+
+	u8 server_ser_ver;
 
 protected:
 	void doUpdate() override;	
 private:
 	MutexedQueue<ReceiveBlockRequest> queue_in;
 	MutexedQueue<ReceiveBlockResponse> queue_out;
-
-	Map *map;
-	IGameDef *gamedef;
 };

@@ -38,6 +38,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "network/address.h"
 #include "network/peerhandler.h"
 #include "gameparams.h"
+#include "map_thread.h"
 #include <fstream>
 
 #define CLIENT_CHAT_MESSAGE_LIMIT_PER_10S 10.0f
@@ -484,6 +485,7 @@ private:
 
 
 	MeshUpdateManager m_mesh_update_manager;
+	MapThread m_map_thread;
 	ClientEnvironment m_env;
 	ParticleManager m_particle_manager;
 	std::unique_ptr<con::Connection> m_con;

@@ -82,6 +82,7 @@ void Client::handleCommand_Hello(NetworkPacket* pkt)
 	}
 
 	m_server_ser_ver = serialization_ver;
+	m_map_thread.server_ser_ver = serialization_ver;
 	m_proto_ver = proto_ver;
 
 	//TODO verify that username_legacy matches sent username, only
@@ -301,45 +302,7 @@ void Client::handleCommand_BlockData(NetworkPacket* pkt)
 
 	std::string datastring(pkt->getString(6), pkt->getSize() - 6);
 
-	// add to queue here
-
-	std::istringstream istr(datastring, std::ios_base::binary);
-
-	MapSector *sector;
-	MapBlock *block;
-
-	v2s16 p2d(p.X, p.Z);
-	sector = m_env.getMap().emergeSector(p2d);
-
-	assert(sector->getPos() == p2d);
-
-	block = sector->getBlockNoCreateNoEx(p.Y);
-	if (block) {
-		/*
-			Update an existing block
-		*/
-		block->deSerialize(istr, m_server_ser_ver, false);
-		block->deSerializeNetworkSpecific(istr);
-	}
-	else {
-		/*
-			Create a new block
-		*/
-		block = sector->createBlankBlock(p.Y);
-		block->deSerialize(istr, m_server_ser_ver, false);
-		block->deSerializeNetworkSpecific(istr);
-	}
-
-	// receive from queue here
-
-	if (m_localdb) {
-		ServerMap::saveBlock(block, m_localdb);
-	}
-
-	/*
-		Add it to mesh update queue and set it to be acknowledged after update.
-	*/
-	addUpdateMeshTaskWithEdge(p, true);
+	m_map_thread.queueReceivedBlock(p, datastring, &(m_env.getMap()), this);
 }
 
 void Client::handleCommand_Inventory(NetworkPacket* pkt)

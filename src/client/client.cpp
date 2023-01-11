@@ -41,6 +41,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "filesys.h"
 #include "mapblock_mesh.h"
 #include "mapblock.h"
+#include "mapsector.h"
 #include "minimap.h"
 #include "modchannels.h"
 #include "content/mods.h"
@@ -313,6 +314,7 @@ void Client::Stop()
 		m_script->on_shutdown();
 	//request all client managed threads to stop
 	m_mesh_update_manager.stop();
+	m_map_thread.stop();
 	// Save local server map
 	if (m_localdb) {
 		infostream << "Local map saving ended." << std::endl;
@@ -917,6 +919,29 @@ void Client::ReceiveAll()
 					"InvalidIncomingDataException: what()="
 					 << e.what() << std::endl;
 		}
+	}
+
+
+	while (MapBlock *received_block = m_map_thread.getNextReceivedBlock()) {
+		MapSector *sector = m_env.getMap().emergeSector(v2s16(received_block->getPos().X, received_block->getPos().Z));
+		MapBlock *block = sector->getBlockNoCreateNoEx(received_block->getPos().Y);
+		if (block) {
+			block->copyFrom(received_block);
+			delete received_block;
+		}
+		else {
+			block = received_block;
+			sector->insertBlock(block);
+		}
+
+		if (m_localdb) {
+			ServerMap::saveBlock(block, m_localdb);
+		}
+
+		/*
+			Add it to mesh update queue and set it to be acknowledged after update.
+		*/
+		addUpdateMeshTaskWithEdge(block->getPos(), true);
 	}
 }
 
@@ -1802,6 +1827,7 @@ void Client::afterContentReceived()
 	// Start mesh update thread after setting up content definitions
 	infostream<<"- Starting mesh update thread"<<std::endl;
 	m_mesh_update_manager.start();
+	m_map_thread.start();
 
 	m_state = LC_Ready;
 	sendReady();

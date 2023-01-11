@@ -19,12 +19,15 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "client/map_thread.h"
 #include "mapblock.h"
+#include "map.h"
+#include "gamedef.h"
 
-#include <stringstream>
+#include <string>
 
-void MapThread::queueReceiveBlock(v3s16 pos, std::string &data)
+void MapThread::queueReceivedBlock(v3s16 pos, std::string &data, Map *map, IGameDef *gamedef)
 {
-	queue_in.push_back({pos, std::move(data)});
+	queue_in.push_back({pos, data, map, gamedef});
+	deferUpdate();
 }
 
 MapBlock *MapThread::getNextReceivedBlock()
@@ -32,7 +35,7 @@ MapBlock *MapThread::getNextReceivedBlock()
 	try {
 		return queue_out.pop_front(0).map_block;
 	}
-	catch(ItemNotFoundException) {
+	catch(ItemNotFoundException &) {
 		return nullptr;
 	}
 }
@@ -41,15 +44,18 @@ void MapThread::doUpdate()
 {
 	try {
 		while (true) {
-			ReceiveBlockRequest request = queue_in.pop_front();
-			MapBlock *block = new MapBlock(map, request.pos, gamedef);
+			ReceiveBlockRequest request = queue_in.pop_front(-1);
+			MapBlock *block = new MapBlock(request.map, request.pos, request.gamedef);
 
-			std::stringstream
-			block->deSerialize(request)
+			std::istringstream istr(request.block_data, std::ios_base::binary);
+
+			block->deSerialize(istr, server_ser_ver, false);
+			block->deSerializeNetworkSpecific(istr);
+
+			queue_out.push_back(ReceiveBlockResponse {block});
 		}
 	}
-	catch (ItemNotFoundException)
-	{
+	catch (ItemNotFoundException &) {
 		// no op
 	}
 }

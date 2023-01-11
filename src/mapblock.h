@@ -438,6 +438,8 @@ public:
 	// clearObject and return removed objects count
 	u32 clearObjects();
 
+	void copyFrom(MapBlock *other);
+
 private:
 	/*
 		Private methods

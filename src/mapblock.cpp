@@ -655,6 +655,33 @@ u32 MapBlock::clearObjects()
 	}
 	return size;
 }
+
+void MapBlock::copyFrom(MapBlock *other)
+{
+	assert(m_parent == other->m_parent);
+	assert(m_pos == other->m_pos);
+
+	m_node_metadata = other->m_node_metadata;
+	m_static_objects = other->m_static_objects;
+
+	contents = other->contents;
+	contents_cached = other->contents_cached;
+	do_not_cache_contents = other->do_not_cache_contents;
+	solid_sides = other->solid_sides;
+
+	is_underground = other->is_underground;
+	m_lighting_complete = other->m_lighting_complete;
+
+	m_day_night_differs = other->m_day_night_differs;
+	m_day_night_differs_expired = other->m_day_night_differs_expired;
+	m_generated = other->m_generated;
+	m_timestamp = other->m_timestamp;
+	m_disk_timestamp = other->m_disk_timestamp;
+	m_usage_timer = other->m_usage_timer;
+
+	std::memcpy(data, other->data, nodecount);
+	m_node_timers = other->m_node_timers;
+}
 /*
 	Legacy serialization
 */
