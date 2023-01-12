@@ -103,23 +103,18 @@ ClientMap::ClientMap(
 	m_cache_bilinear_filter   = g_settings->getBool("bilinear_filter");
 	m_cache_anistropic_filter = g_settings->getBool("anisotropic_filter");
 	m_cache_transparency_sorting_distance = g_settings->getU16("transparency_sorting_distance");
-	m_new_occlusion_culler = g_settings->get("occlusion_culler") == "bfs";
-	g_settings->registerChangedCallback("occlusion_culler", on_settings_changed, this);
 	m_enable_raytraced_culling = g_settings->getBool("enable_raytraced_culling");
 	g_settings->registerChangedCallback("enable_raytraced_culling", on_settings_changed, this);
 }
 
 void ClientMap::onSettingChanged(const std::string &name)
 {
-	if (name == "occlusion_culler")
-		m_new_occlusion_culler = g_settings->get("occlusion_culler") == "bfs";
 	if (name == "enable_raytraced_culling")
 		m_enable_raytraced_culling = g_settings->getBool("enable_raytraced_culling");
 }
 
 ClientMap::~ClientMap()
 {
-	g_settings->deregisterChangedCallback("occlusion_culler", on_settings_changed, this);
 	g_settings->deregisterChangedCallback("enable_raytraced_culling", on_settings_changed, this);
 }
 
@@ -495,9 +490,6 @@ void ClientMap::updateDrawList()
 
 void ClientMap::touchMapBlocks()
 {
-	if (!m_new_occlusion_culler)
-		return;
-
 	v3s16 cam_pos_nodes = floatToInt(m_camera_position, BS);
 
 	v3s16 p_blocks_min;
