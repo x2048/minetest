@@ -38,7 +38,9 @@ varying vec3 vPosition;
 // cameraOffset + worldPosition (for large coordinates the limits of float
 // precision must be considered).
 varying vec3 worldPosition;
-varying lowp vec4 varColor;
+varying lowp vec3 artificialColor;
+varying lowp vec3 naturalColor;
+varying lowp vec3 directNaturalLight;
 #ifdef GL_ES
 varying mediump vec2 varTexCoord;
 #else
@@ -386,7 +388,8 @@ void main(void)
 #endif
 
 	color = base.rgb;
-	vec4 col = vec4(color.rgb * varColor.rgb, 1.0);
+
+	vec3 naturalLight = naturalColor;
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
 	if (f_shadow_strength > 0.0) {
@@ -420,11 +423,6 @@ void main(void)
 
 		}
 
-		// turns out that nightRatio falls off much faster than
-		// actual brightness of artificial light in relation to natual light.
-		// Power ratio was measured on torches in MTG (brightness = 14).
-		float adjusted_night_ratio = pow(max(0.0, nightRatio), 0.6);
-
 		// Apply self-shadowing when light falls at a narrow angle to the surface
 		// Cosine of the cut-off angle.
 		const float self_shadow_cutoff_cosine = 0.035;
@@ -436,32 +434,15 @@ void main(void)
 		float lightSourceStrength = f_adj_shadow_strength;
 		float ambientLightStrength = max(0., 1. - lightSourceStrength);
 
-		// hardlight tints
-		// vec3 artificialTint = normalizeColor(vec3(1., 231./255., 197./255.));
-		// vec3 ambientTint = normalizeColor(vec3(201./255., 226./255., 1.0));
-		// vec3 lightSourceTint = normalizeColor(vec3(212./255., 235./255., 1.));
+		// apply shadow to natural light
+		naturalLight *=
+				ambientLightStrength + // natural ambient light
+				directNaturalLight * max(vec3(1.0 - shadow_int), shadow_color.rgb) * lightSourceStrength; // shaded sunlight/moonlight
 
-		// daylight tints
-		vec3 artificialTint = normalizeColor(vec3(1., 231./255., 197./255.));
-		vec3 ambientTint = normalizeColor(vec3(201./255., 226./255., 1.0));
-		vec3 lightSourceTint = normalizeColor(vec3(1.0, 250./255., 244./255.));
-
-		// sunset tints
-		// vec3 artificialTint = normalizeColor(vec3(1., 231./255., 197./255.));
-		// vec3 ambientTint = normalizeColor(vec3(197./255., 218./255., 1.0));
-		// vec3 lightSourceTint = normalizeColor(vec3(1.0, 147./255., 41./255.));
-
-		float lightSourceBoost = 1.44;
-
-
-		// calculate fragment color from components:
-		col.rgb =
-				artificialTint * lightSourceBoost * adjusted_night_ratio * col.rgb + // artificial light
-				(1.0 - adjusted_night_ratio) * col.rgb * ( // natural light
-						ambientTint * ambientLightStrength + // ambient
-						lightSourceBoost * lightSourceTint * max(vec3(1.0 - shadow_int), shadow_color.rgb) * lightSourceStrength); // diffuse
 	}
 #endif
+
+	color.rgb *= artificialColor + naturalLight * dayLight;
 
 	// Due to a bug in some (older ?) graphics stacks (possibly in the glsl compiler ?),
 	// the fog will only be rendered correctly if the last operation before the
@@ -474,8 +455,7 @@ void main(void)
 	// Note: clarity = (1 - fogginess)
 	float clarity = clamp(fogShadingParameter
 		- fogShadingParameter * length(eyeVec) / fogDistance, 0.0, 1.0);
-	col = mix(skyBgColor, col, clarity);
-	col = vec4(col.rgb, base.a);
+	color = mix(skyBgColor.rgb, color, clarity);
 
-	gl_FragData[0] = col;
+	gl_FragData[0] = vec4(color, base.a);
 }
