@@ -11,6 +11,7 @@ uniform sampler2D bloom;
 uniform ExposureParams exposureParams;
 uniform lowp float bloomIntensity;
 uniform lowp float saturation;
+uniform vec2 texelSize0;
 
 #ifdef GL_ES
 varying mediump vec2 varTexCoord;
@@ -78,7 +79,12 @@ vec3 applySaturation(vec3 color, float factor)
 void main(void)
 {
 	vec2 uv = varTexCoord.st;
-	vec4 color = texture2D(rendered, uv).rgba;
+	vec4 color = 0.25 * (
+			texture2D(rendered, uv + vec2(0.25, 0.25) * texelSize0).rgba + 
+			texture2D(rendered, uv + vec2(0.25, 1.25) * texelSize0).rgba + 
+			texture2D(rendered, uv + vec2(1.25, 0.25) * texelSize0).rgba + 
+			texture2D(rendered, uv + vec2(1.25, 1.25) * texelSize0).rgba);
+	// vec4 color = texture2D(rendered, uv + texelSize0).rgba;
 
 	// translate to linear colorspace (approximate)
 	color.rgb = pow(color.rgb, vec3(2.2));

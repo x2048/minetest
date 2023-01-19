@@ -120,10 +120,10 @@ RenderStep *addPostProcessing(RenderPipeline *pipeline, RenderStep *previousStep
 	static const u8 TEXTURE_BLOOM_DOWN = 10;
 	static const u8 TEXTURE_BLOOM_UP = 20;
 
-	buffer->setTexture(TEXTURE_COLOR, scale, "3d_render", color_format);
+	buffer->setTexture(TEXTURE_COLOR, 2.0 * scale, "3d_render", color_format);
 	buffer->setTexture(TEXTURE_EXPOSURE_1, core::dimension2du(1,1), "exposure_1", color_format, /*clear:*/ true);
 	buffer->setTexture(TEXTURE_EXPOSURE_2, core::dimension2du(1,1), "exposure_2", color_format, /*clear:*/ true);
-	buffer->setTexture(TEXTURE_DEPTH, scale, "3d_depthmap", depth_format);
+	buffer->setTexture(TEXTURE_DEPTH, 2.0 * scale, "3d_depthmap", depth_format);
 
 	// attach buffer to the previous step
 	previousStep->setRenderTarget(pipeline->createOwned<TextureBufferOutput>(buffer, std::vector<u8> { TEXTURE_COLOR }, TEXTURE_DEPTH));
@@ -199,6 +199,7 @@ RenderStep *addPostProcessing(RenderPipeline *pipeline, RenderStep *previousStep
 	shader_id = client->getShaderSource()->getShader("second_stage", TILE_MATERIAL_PLAIN, NDT_MESH);
 	PostProcessingStep *effect = pipeline->createOwned<PostProcessingStep>(shader_id, std::vector<u8> { TEXTURE_COLOR, TEXTURE_BLOOM_UP, TEXTURE_EXPOSURE_2 });
 	pipeline->addStep(effect);
+	effect->setBilinearFilter(0, true);
 	effect->setBilinearFilter(1, true); // apply filter to the bloom
 	effect->setRenderSource(buffer);
 
