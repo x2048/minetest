@@ -528,18 +528,14 @@ void ClientMap::touchMapBlocks()
 				if not seen on display
 			*/
 
-			v3f mesh_sphere_center;
-			f32 mesh_sphere_radius;
-			if (block->mesh) {
-				mesh_sphere_center = intToFloat(block->getPosRelative(), BS)
-						+ block->mesh->getBoundingSphereCenter();
-				mesh_sphere_radius = block->mesh->getBoundingRadius();
-			}
-			else {
-				mesh_sphere_center = intToFloat(block->getPosRelative(), BS) + v3f((MAP_BLOCKSIZE * 0.5f - 0.5f) * BS);
-				mesh_sphere_radius = 0.0f;
+			if (!block->mesh) {
+				// Ignore if mesh doesn't exist
+				continue;
 			}
 
+			v3f mesh_sphere_center = intToFloat(block->getPosRelative(), BS)
+					+ block->mesh->getBoundingSphereCenter();
+			f32 mesh_sphere_radius = block->mesh->getBoundingRadius();
 			// First, perform a simple distance check.
 			if (!m_control.range_all &&
 				mesh_sphere_center.getDistanceFrom(intToFloat(cam_pos_nodes, BS)) >
@@ -548,8 +544,7 @@ void ClientMap::touchMapBlocks()
 
 			// Keep the block alive as long as it is in range.
 			block->resetUsageTimer();
-			if (block->mesh)
-				blocks_in_range_with_mesh++;
+			blocks_in_range_with_mesh++;
 		}
 	}
 	g_profiler->avg("MapBlock meshes in range [#]", blocks_in_range_with_mesh);
