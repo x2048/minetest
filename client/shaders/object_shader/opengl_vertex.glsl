@@ -11,7 +11,7 @@ varying vec3 vPosition;
 varying vec3 worldPosition;
 varying lowp vec3 artificialColor;
 varying lowp vec3 naturalColor;
-varying lowp vec3 directNaturalLight;
+
 #ifdef GL_ES
 varying mediump vec2 varTexCoord;
 #else
@@ -33,6 +33,7 @@ centroid varying vec2 varTexCoord;
 	varying float f_normal_length;
 	varying vec3 shadow_position;
 	varying float perspective_factor;
+	varying lowp vec3 directNaturalLight;
 #endif
 
 varying vec3 eyeVec;
@@ -173,9 +174,9 @@ void main(void)
 	naturalColor = color.rgb * (1.0 - adjusted_night_ratio) * 2.0;
 	naturalColor += getNaturalLightTint(dot(naturalColor, vec3(0.33)));
 
+#ifdef ENABLE_DYNAMIC_SHADOWS
 	directNaturalLight = getDirectNaturalLightAtGround(vec3(1.0), v_LightDirection);
 
-#ifdef ENABLE_DYNAMIC_SHADOWS
 	if (f_shadow_strength > 0.0) {
 		vec3 nNormal = normalize(vNormal);
 		f_normal_length = length(vNormal);
