@@ -91,8 +91,8 @@ void main(void)
 	float depth = mapDepth(rawDepth);
 	vec3 lookDirection = normalize(vec3(uv.x * 2. - 1., uv.y * 2. - 1., 1. / tan(36. / 180. * 3.141596)));
 	vec3 lightSourceTint = vec3(1.0, 0.98, 0.4);
-	const float sunBoost = 12.0;
-	const float moonBoost = 3.0;
+	const float sunBoost = 4.0;
+	const float moonBoost = 2.0;
 
 	float boost = 0.;
 	float brightness = 0.;
@@ -111,7 +111,7 @@ void main(void)
 	}
 
 	float lightFactor = brightness * sampleVolumetricLight(uv, sourcePosition, rawDepth) *
-			(0.05 * pow(clamp(dot(sourcePosition, vec3(0., 0., 1.)), 0.0, 0.7), 2.5) + 0.95 * pow(max(0., dot(sourcePosition, lookDirection)), 32.));
+			(0.05 * pow(clamp(dot(sourcePosition, vec3(0., 0., 1.)), 0.0, 0.7), 2.5) + 0.95 * pow(max(0., dot(sourcePosition, lookDirection)), 8.));
 
 	color.rgb = mix(color.rgb, boost * getDirectNaturalLightAtGround(dayLight,v_LightDirection), lightFactor);
 
