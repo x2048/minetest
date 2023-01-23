@@ -17,7 +17,6 @@ varying vec3 vPosition;
 varying vec3 worldPosition;
 varying lowp vec3 artificialColor;
 varying lowp vec3 naturalColor;
-varying lowp vec3 directNaturalLight;
 
 // The centroid keyword ensures that after interpolation the texture coordinates
 // lie within the same bounds when MSAA is en- and disabled.
@@ -43,6 +42,7 @@ centroid varying vec2 varTexCoord;
 	varying float f_normal_length;
 	varying vec3 shadow_position;
 	varying float perspective_factor;
+	varying lowp vec3 directNaturalLight;
 #endif
 
 varying float area_enable_parallax;
@@ -92,8 +92,44 @@ float mtsmoothstep(in float edge0, in float edge1, in float x)
 	float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
 	return t * t * (3.0 - 2.0 * t);
 }
+
+vec3 getDirectNaturalLightAtGround(vec3 dayLight, vec3 v_LightDirection)
+{
+	// Based on talk at 2002 Game Developers Conference by Naty Hoffman and Arcot J. Preetham
+	const float beta_r0 = 1e-5; // Rayleigh scattering beta
+
+	// These factors are calculated based on expected value of scattering factor of 1e-5
+	// for Nitrogen at 532nm (green), 2e25 molecules/m3 in atmosphere
+	const vec3 beta_r0_l = vec3(3.3362176e-01, 8.75378289198826e-01, 1.95342379700656) * beta_r0; // wavelength-dependent scattering
+
+	const float atmosphere_height = 15000.; // height of the atmosphere in meters
+	// sun/moon light at the ground level, after going through the atmosphere
+	vec3 light_ground = dayLight * exp(-beta_r0_l * atmosphere_height / (1e-25 - dot(v_LightDirection, vec3(0., 1., 0.))));
+	return light_ground;
+}
+
 #endif
 
+
+vec3 getArtificialLightTint(float intensity)
+{
+	float temperature = 4250. + 3250. * (0.0 + 1.0 * pow(intensity, 1.0));
+	// Aproximation of RGB values for specific color temperature in range of 2500K to 7500K
+	// Based on the table at https://andi-siess.de/rgb-to-color-temperature/
+	vec3 color = min(temperature * vec3(0., 9.11765e-05, 1.77451e-04) + vec3(1., 0.403431, -0.161275),
+			temperature * vec3(-7.84314e-05, -6.27451e-05, 7.84314e-06) + vec3(1.50980, 1.40392, 0.941176));
+	// color /= dot(color, vec3(0.213, 0.715, 0.072));
+	return color;
+}
+
+vec3 getNaturalLightTint(float brightness)
+{
+	// Emphase blue a bit in darker places
+	// See C++ implementation in mapblock_mesh.cpp final_color_blend()
+	float b = max(0.0, 0.021 - abs(0.2 * brightness - 0.021) +
+		0.07 * brightness);
+	return vec3(0.0, 0.0, b);
+}
 
 float smoothCurve(float x)
 {
@@ -148,41 +184,6 @@ float snoise(vec3 p)
 }
 
 #endif
-
-vec3 getArtificialLightTint(float intensity)
-{
-	float temperature = 4250. + 3250. * (0.0 + 1.0 * pow(intensity, 1.0));
-	// Aproximation of RGB values for specific color temperature in range of 2500K to 7500K
-	// Based on the table at https://andi-siess.de/rgb-to-color-temperature/
-	vec3 color = min(temperature * vec3(0., 9.11765e-05, 1.77451e-04) + vec3(1., 0.403431, -0.161275),
-			temperature * vec3(-7.84314e-05, -6.27451e-05, 7.84314e-06) + vec3(1.50980, 1.40392, 0.941176));
-	// color /= dot(color, vec3(0.213, 0.715, 0.072));
-	return color;
-}
-
-vec3 getNaturalLightTint(float brightness)
-{
-	// Emphase blue a bit in darker places
-	// See C++ implementation in mapblock_mesh.cpp final_color_blend()
-	float b = max(0.0, 0.021 - abs(0.2 * brightness - 0.021) +
-		0.07 * brightness);
-	return vec3(0.0, 0.0, b);
-}
-
-vec3 getDirectNaturalLightAtGround(vec3 dayLight, vec3 v_LightDirection)
-{
-	// Based on talk at 2002 Game Developers Conference by Naty Hoffman and Arcot J. Preetham
-	const float beta_r0 = 1e-5; // Rayleigh scattering beta
-
-	// These factors are calculated based on expected value of scattering factor of 1e-5
-	// for Nitrogen at 532nm (green), 2e25 molecules/m3 in atmosphere
-	const vec3 beta_r0_l = vec3(3.3362176e-01, 8.75378289198826e-01, 1.95342379700656) * beta_r0; // wavelength-dependent scattering
-
-	const float atmosphere_height = 15000.; // height of the atmosphere in meters
-	// sun/moon light at the ground level, after going through the atmosphere
-	vec3 light_ground = dayLight * exp(-beta_r0_l * atmosphere_height / (1e-25 - dot(v_LightDirection, vec3(0., 1., 0.))));
-	return light_ground;
-}
 
 void main(void)
 {
@@ -258,9 +259,9 @@ void main(void)
 	naturalColor = color.rgb * (1.0 - adjusted_night_ratio) * 2.0;
 	naturalColor += getNaturalLightTint(dot(naturalColor, vec3(0.33)));
 
+#ifdef ENABLE_DYNAMIC_SHADOWS
 	directNaturalLight = getDirectNaturalLightAtGround(vec3(1.0), v_LightDirection);
 
-#ifdef ENABLE_DYNAMIC_SHADOWS
 	if (f_shadow_strength > 0.0) {
 #if MATERIAL_TYPE == TILE_MATERIAL_WAVING_PLANTS && ENABLE_WAVING_PLANTS
 		// The shadow shaders don't apply waving when creating the shadow-map.
