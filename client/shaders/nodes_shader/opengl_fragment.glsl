@@ -26,6 +26,7 @@ uniform float animationTimer;
 	varying float f_normal_length;
 	varying vec3 shadow_position;
 	varying float perspective_factor;
+	varying lowp vec3 directNaturalLight;
 #endif
 
 
@@ -39,7 +40,6 @@ varying vec3 vPosition;
 varying vec3 worldPosition;
 varying lowp vec3 artificialColor;
 varying lowp vec3 naturalColor;
-varying lowp vec3 directNaturalLight;
 #ifdef GL_ES
 varying mediump vec2 varTexCoord;
 #else
