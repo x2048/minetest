@@ -257,6 +257,11 @@ void ClientMap::updateDrawList()
 	}
 	m_drawlist.clear();
 
+	for (auto &block : m_keeplist) {
+		block->refDrop();
+	}
+	m_keeplist.clear();
+
 	v3s16 cam_pos_nodes = floatToInt(m_camera_position, BS);
 
 	v3s16 p_blocks_min;
@@ -375,8 +380,8 @@ void ClientMap::updateDrawList()
 		// Add them to the de-dup set.
 		shortlist.emplace(block_coord.X & ~1, block_coord.Y & ~1, block_coord.Z & ~1);
 		// All other blocks we can grab and add to the drawlist right away.
-		if (block && m_drawlist.emplace(block_coord, block).second) {
-			// only grab the ref if the block exists and was not in the list
+		if (block) {
+			m_keeplist.push_back(block);
 			block->refGrab();
 		}
 
