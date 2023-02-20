@@ -140,9 +140,13 @@ public:
 
 	void onSettingChanged(const std::string &name);
 
+	const std::vector<v3s16> getSpecialBlocks() { return m_special_blocks; }
+
 protected:
 	void reportMetrics(u64 save_time_us, u32 saved_blocks, u32 all_blocks) override;
 private:
+
+	std::vector<v3s16> m_special_blocks;
 
 	// update the vertex order in transparent mesh buffers
 	void updateTransparentMeshBuffers();

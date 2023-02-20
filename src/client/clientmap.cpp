@@ -31,6 +31,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "client/renderingengine.h"
 
 #include <queue>
+#include <vector>
 
 // struct MeshBufListList
 void MeshBufListList::clear()
@@ -207,6 +208,7 @@ public:
 	MapBlockFlags(v3s16 min_pos, v3s16 max_pos)
 			: min_pos(min_pos), volume((max_pos - min_pos) / CHUNK_EDGE + 1)
 	{
+
 		chunks.resize(volume.X * volume.Y * volume.Z);
 	}
 
@@ -264,10 +266,6 @@ void ClientMap::updateDrawList()
 
 	v3s16 cam_pos_nodes = floatToInt(m_camera_position, BS);
 
-	v3s16 p_blocks_min;
-	v3s16 p_blocks_max;
-	getBlocksInViewRange(cam_pos_nodes, &p_blocks_min, &p_blocks_max);
-
 	// Number of blocks occlusion culled
 	u32 blocks_occlusion_culled = 0;
 	// Blocks visited by the algorithm
@@ -285,6 +283,34 @@ void ClientMap::updateDrawList()
 
 	v3s16 camera_block = getContainerPos(cam_pos_nodes, MAP_BLOCKSIZE);
 	m_drawlist = std::map<v3s16, MapBlock*, MapBlockComparer>(MapBlockComparer(camera_block));
+	m_special_blocks.clear();
+
+	u32 n_sectors = m_sectors.size();
+
+	// nothing to scan, done here.
+	if (n_sectors == 0)
+		return; 
+
+	std::vector<MapSector *> sectors;
+	sectors.reserve(n_sectors);
+
+	for (const auto &i : m_sectors)
+		sectors.push_back(i.second);
+
+	v2s16 camera_sector(camera_block.X, camera_block.Z);
+	// order sectors by distance to the viewer
+	std::sort(sectors.begin(), sectors.end(), 
+			[&](MapSector *l, MapSector *r) {
+				return l->getPos().getDistanceFromSQ(camera_sector) < r->getPos().getDistanceFromSQ(camera_sector);
+			});
+	
+	u16 range = MYMAX(std::abs(sectors.back()->getPos().X - camera_sector.X), std::abs(sectors.back()->getPos().Y - camera_sector.Y)) * MAP_BLOCKSIZE;
+	if (!m_control.range_all)
+		range = MYMIN(range, m_control.wanted_range);
+
+	v3s16 p_blocks_min;
+	v3s16 p_blocks_max;
+	getBlocksInViewRange(cam_pos_nodes, &p_blocks_min, &p_blocks_max, range);
 
 	auto is_frustum_culled = m_client->getCamera()->getFrustumCuller();
 
@@ -299,195 +325,255 @@ void ClientMap::updateDrawList()
 	// [ visited | 0 | 0 | 0 | 0 | Z visible | Y visible | X visible ]
 	MapBlockFlags blocks_seen(p_blocks_min, p_blocks_max);
 
-	// Start breadth-first search with the block the camera is in
-	blocks_to_consider.push(camera_block);
-	blocks_seen.getChunk(camera_block).getBits(camera_block) = 0x07; // mark all sides as visible
-
 	std::set<v3s16> shortlist;
 	MeshGrid mesh_grid = m_client->getMeshGrid();
 
-	// Recursively walk the space and pick mapblocks for drawing
-	while (blocks_to_consider.size() > 0) {
+	for (MapSector *sector : sectors) {
 
-		v3s16 block_coord = blocks_to_consider.front();
-		blocks_to_consider.pop();
+		if (std::abs(sector->getPos().X - camera_sector.X) * MAP_BLOCKSIZE > range ||
+				std::abs(sector->getPos().Y - camera_sector.Y) * MAP_BLOCKSIZE > range)
+			break;
 
-		auto &flags = blocks_seen.getChunk(block_coord).getBits(block_coord);
+		std::vector<MapBlock *> blocks;
+		sector->getBlocks(blocks);
 
-		// Only visit each block once (it may have been queued up to three times)
-		if ((flags & 0x80) == 0x80)
+		// if there are no blocks in the sector, ignore until something is loaded
+		if (blocks.size() == 0)
 			continue;
-		flags |= 0x80;
-
-		blocks_visited++;
-
-		// Get the sector, block and mesh
-		MapSector *sector = this->getSectorNoGenerate(v2s16(block_coord.X, block_coord.Z));
-
-		if (!sector)
-			continue;
-
-		MapBlock *block = sector->getBlockNoCreateNoEx(block_coord.Y);
-
-		MapBlockMesh *mesh = block ? block->mesh : nullptr;
-
-		// Calculate the coordinates for range and frutum culling
-		v3f mesh_sphere_center;
-		f32 mesh_sphere_radius;
-
-		v3s16 block_pos_nodes = block_coord * MAP_BLOCKSIZE;
-
-		if (mesh) {
-			mesh_sphere_center = intToFloat(block_pos_nodes, BS)
-					+ mesh->getBoundingSphereCenter();
-			mesh_sphere_radius = mesh->getBoundingRadius();
-		}
-		else {
-			mesh_sphere_center = intToFloat(block_pos_nodes, BS) + v3f((MAP_BLOCKSIZE * 0.5f - 0.5f) * BS);
-			mesh_sphere_radius = 0.0f;
-		}
-
-		// First, perform a simple distance check.
-		if (!m_control.range_all &&
-			mesh_sphere_center.getDistanceFrom(intToFloat(cam_pos_nodes, BS)) >
-				m_control.wanted_range * BS + mesh_sphere_radius)
-			continue; // Out of range, skip.
-
-		// Frustum culling
-		// Only do coarse culling here, to account for fast camera movement.
-		// This is needed because this function is not called every frame.
-		float frustum_cull_extra_radius = 300.0f;
-		if (is_frustum_culled(mesh_sphere_center,
-				mesh_sphere_radius + frustum_cull_extra_radius))
-			continue;
-
-		// Calculate the vector from the camera block to the current block
-		// We use it to determine through which sides of the current block we can continue the search
-		v3s16 look = block_coord - camera_block;
-
-		// Occluded near sides will further occlude the far sides
-		u8 visible_outer_sides = flags & 0x07;
-
-		// Raytraced occlusion culling - send rays from the camera to the block's corners
-		if (occlusion_culling_enabled && m_enable_raytraced_culling &&
-				block && mesh &&
-				visible_outer_sides != 0x07 && isBlockOccluded(block, cam_pos_nodes)) {
-			blocks_occlusion_culled++;
-			continue;
-		}
-
-		if (mesh_grid.cell_size > 1) {
-			// Block meshes are stored in the corner block of a chunk
-			// (where all coordinate are divisible by the chunk size)
-			// Add them to the de-dup set.
-			shortlist.emplace(mesh_grid.getMeshPos(block_coord.X), mesh_grid.getMeshPos(block_coord.Y), mesh_grid.getMeshPos(block_coord.Z));
-			// All other blocks we can grab and add to the keeplist right away.
-			if (block) {
-				m_keeplist.push_back(block);
-				block->refGrab();
-			}
-		}
-		else if (mesh) {
-			// without mesh chunking we can add the block to the drawlist
-			block->refGrab();
-			m_drawlist.emplace(block_coord, block);
-		}
-
-		// Decide which sides to traverse next or to block away
-
-		// First, find the near sides that would occlude the far sides
-		// * A near side can itself be occluded by a nearby block (the test above ^^)
-		// * A near side can be visible but fully opaque by itself (e.g. ground at the 0 level)
-
-		// mesh solid sides are +Z-Z+Y-Y+X-X
-		// if we are inside the block's coordinates on an axis, 
-		// treat these sides as opaque, as they should not allow to reach the far sides
-		u8 block_inner_sides = (look.X == 0 ? 3 : 0) |
-			(look.Y == 0 ? 12 : 0) |
-			(look.Z == 0 ? 48 : 0);
-
-		// get the mask for the sides that are relevant based on the direction
-		u8 near_inner_sides = (look.X > 0 ? 1 : 2) |
-				(look.Y > 0 ? 4 : 8) |
-				(look.Z > 0 ? 16 : 32);
 		
-		// This bitset is +Z-Z+Y-Y+X-X (See MapBlockMesh), and axis is XYZ.
-		// Get he block's transparent sides
-		u8 transparent_sides = (occlusion_culling_enabled && block) ? ~block->solid_sides : 0x3F;
+		// get the span of unloaded blocks at the camera level
+		MapBlock *closest_below = nullptr;
+		MapBlock *closest_above = nullptr;
 
-		// compress block transparent sides to ZYX mask of see-through axes
-		u8 near_transparency =  (block_inner_sides == 0x3F) ? near_inner_sides : (transparent_sides & near_inner_sides);
+		for (auto block : blocks) {
+			if (block->getPos().Y < camera_block.Y && block->mesh && (!closest_below || closest_below->getPos().Y < block->getPos().Y))
+				closest_below = block;
+			if (block->getPos().Y >= camera_block.Y && block->mesh && (!closest_above || closest_above->getPos().Y > block->getPos().Y))
+				closest_above = block;
+		}
 
-		// when we are inside the camera block, do not block any sides
-		if (block_inner_sides == 0x3F)
-			block_inner_sides = 0;
+		s16 span_min_y = closest_below == nullptr ? (camera_block.Y - range / MAP_BLOCKSIZE) : closest_below->getPos().Y;
+		s16 span_max_y = closest_above == nullptr ? (camera_block.Y + range / MAP_BLOCKSIZE) : closest_above->getPos().Y;
 
-		near_transparency &= ~block_inner_sides & 0x3F;
+		// mark all blocks around the span visible
+		for (int x : { sector->getPos().X - 1, sector->getPos().X + 1})
+		for (int z : { sector->getPos().Y - 1, sector->getPos().Y + 1})
+		for (int y = span_min_y; y < span_max_y; y++) {
+			blocks_seen.getChunk(v3s16(x, y, z)).getBits(v3s16(x, y, z)) |= 0x07; // all sides visible
+		}
+	
+		int i = 0;
+		for (MapBlock *block : { closest_below, closest_above })
+		{
+			if (!block)
+				continue;
 
-		near_transparency |= (near_transparency >> 1);
-		near_transparency = (near_transparency & 1) |
-				((near_transparency >> 1) & 2) |
-				((near_transparency >> 2) & 4);
+			m_special_blocks.push_back(block->getPos());
 
-		// combine with known visible sides that matter
-		near_transparency &= visible_outer_sides;
+			if (!block->mesh)
+				continue;
+			
+			i++;
 
-		// The rule for any far side to be visible:
-		// * Any of the adjacent near sides is transparent (different axes)
-		// * The opposite near side (same axis) is transparent, if it is the dominant axis of the look vector
+			if (i > 2)
+				break;
 
-		// Calculate vector from camera to mapblock center. Because we only need relation between
-		// coordinates we scale by 2 to avoid precision loss.
-		v3s16 precise_look = 2 * (block_pos_nodes - cam_pos_nodes) + MAP_BLOCKSIZE - 1;
+			if (std::abs(block->getPos().Y - camera_block.Y) * MAP_BLOCKSIZE > range)
+				break;
 
-		// dominant axis flag
-		u8 dominant_axis = (abs(precise_look.X) > abs(precise_look.Y) && abs(precise_look.X) > abs(precise_look.Z)) |
-					((abs(precise_look.Y) > abs(precise_look.Z) && abs(precise_look.Y) > abs(precise_look.X)) << 1) |
-					((abs(precise_look.Z) > abs(precise_look.X) && abs(precise_look.Z) > abs(precise_look.Y)) << 2);
+			m_special_blocks.push_back(block->getPos());
+			// Start breadth-first search with the closest loaded block to the camera
+			blocks_to_consider.push(block->getPos());
+			blocks_seen.getChunk(block->getPos()).getBits(block->getPos()) = 0x07; // mark all sides as visible
 
-		// Queue next blocks for processing:
-		// - Examine "far" sides of the current blocks, i.e. never move towards the camera
-		// - Only traverse the sides that are not occluded
-		// - Only traverse the sides that are not opaque
-		// When queueing, mark the relevant side on the next block as 'visible'
-		for (s16 axis = 0; axis < 3; axis++) {
+			// Recursively walk the space and pick mapblocks for drawing
+			while (blocks_to_consider.size() > 0) {
+				v3s16 block_coord = blocks_to_consider.front();
+				blocks_to_consider.pop();
 
-			// Select a bit from transparent_sides for the side
-			u8 far_side_mask = 1 << (2 * axis);
+				auto &flags = blocks_seen.getChunk(block_coord).getBits(block_coord);
 
-			// axis flag
-			u8 my_side = 1 << axis;
-			u8 adjacent_sides = my_side ^ 0x07;
+				// Only visit each block once (it may have been queued up to three times)
+				if ((flags & 0x80) == 0x80)
+					continue;
+				flags |= 0x80;
 
-			auto traverse_far_side = [&](s8 next_pos_offset) {
-				// far side is visible if adjacent near sides are transparent, or if opposite side on dominant axis is transparent
-				bool side_visible = ((near_transparency & adjacent_sides) | (near_transparency & my_side & dominant_axis)) != 0;
-				side_visible = side_visible && ((far_side_mask & transparent_sides) != 0);
+				blocks_visited++;
 
-				v3s16 next_pos = block_coord;
-				next_pos[axis] += next_pos_offset;
+				// Get the sector, block and mesh
+				MapSector *sector = this->getSectorNoGenerate(v2s16(block_coord.X, block_coord.Z));
 
-				// If a side is a see-through, mark the next block's side as visible, and queue
-				if (side_visible) {
-					auto &next_flags = blocks_seen.getChunk(next_pos).getBits(next_pos);
-					next_flags |= my_side;
-					blocks_to_consider.push(next_pos);
+				if (!sector)
+					continue;
+
+				MapBlock *block = sector->getBlockNoCreateNoEx(block_coord.Y);
+
+				if (!block)
+					continue;
+
+				MapBlockMesh *mesh = block ? block->mesh : nullptr;
+
+				// Calculate the coordinates for range and frutum culling
+				v3f mesh_sphere_center;
+				f32 mesh_sphere_radius;
+
+				v3s16 block_pos_nodes = block_coord * MAP_BLOCKSIZE;
+
+				if (mesh) {
+					mesh_sphere_center = intToFloat(block_pos_nodes, BS)
+							+ mesh->getBoundingSphereCenter();
+					mesh_sphere_radius = mesh->getBoundingRadius();
 				}
 				else {
-					sides_skipped++;
+					mesh_sphere_center = intToFloat(block_pos_nodes, BS) + v3f((MAP_BLOCKSIZE * 0.5f - 0.5f) * BS);
+					mesh_sphere_radius = 0.0f;
 				}
-			};
+
+				// First, perform a simple distance check.
+				if (!m_control.range_all &&
+					mesh_sphere_center.getDistanceFrom(intToFloat(cam_pos_nodes, BS)) >
+						m_control.wanted_range * BS + mesh_sphere_radius) {
+					continue; // Out of range, skip.
+				}
+
+				// Frustum culling
+				// Only do coarse culling here, to account for fast camera movement.
+				// This is needed because this function is not called every frame.
+				float frustum_cull_extra_radius = 300.0f;
+				if (is_frustum_culled(mesh_sphere_center,
+						mesh_sphere_radius + frustum_cull_extra_radius)) {
+					continue;
+				}
+
+				// Calculate the vector from the camera block to the current block
+				// We use it to determine through which sides of the current block we can continue the search
+				v3s16 look = block_coord - camera_block;
+
+				// Occluded near sides will further occlude the far sides
+				u8 visible_outer_sides = flags & 0x07;
+
+				// Raytraced occlusion culling - send rays from the camera to the block's corners
+				if (occlusion_culling_enabled && m_enable_raytraced_culling &&
+						block && mesh &&
+						visible_outer_sides != 0x07 && isBlockOccluded(block, cam_pos_nodes)) {
+					blocks_occlusion_culled++;
+					continue;
+				}
+
+				if (mesh_grid.cell_size > 1) {
+					// Block meshes are stored in the corner block of a chunk
+					// (where all coordinate are divisible by the chunk size)
+					// Add them to the de-dup set.
+					shortlist.emplace(mesh_grid.getMeshPos(block_coord.X), mesh_grid.getMeshPos(block_coord.Y), mesh_grid.getMeshPos(block_coord.Z));
+					// All other blocks we can grab and add to the keeplist right away.
+					if (block) {
+						m_keeplist.push_back(block);
+						block->refGrab();
+					}
+				}
+				else if (mesh) {
+					// without mesh chunking we can add the block to the drawlist
+					block->refGrab();
+					m_drawlist.emplace(block_coord, block);
+				}
+
+				// Decide which sides to traverse next or to block away
+
+				// First, find the near sides that would occlude the far sides
+				// * A near side can itself be occluded by a nearby block (the test above ^^)
+				// * A near side can be visible but fully opaque by itself (e.g. ground at the 0 level)
+
+				// mesh solid sides are +Z-Z+Y-Y+X-X
+				// if we are inside the block's coordinates on an axis, 
+				// treat these sides as opaque, as they should not allow to reach the far sides
+				u8 block_inner_sides = (look.X == 0 ? 3 : 0) |
+					(look.Y == 0 ? 12 : 0) |
+					(look.Z == 0 ? 48 : 0);
+
+				// get the mask for the sides that are relevant based on the direction
+				u8 near_inner_sides = (look.X > 0 ? 1 : 2) |
+						(look.Y > 0 ? 4 : 8) |
+						(look.Z > 0 ? 16 : 32);
+				
+				// This bitset is +Z-Z+Y-Y+X-X (See MapBlockMesh), and axis is XYZ.
+				// Get he block's transparent sides
+				u8 transparent_sides = (occlusion_culling_enabled && block) ? ~block->solid_sides : 0x3F;
+
+				// compress block transparent sides to ZYX mask of see-through axes
+				u8 near_transparency =  (block_inner_sides == 0x3F) ? near_inner_sides : (transparent_sides & near_inner_sides);
+
+				// when we are inside the camera block, do not block any sides
+				if (block_inner_sides == 0x3F)
+					block_inner_sides = 0;
+
+				near_transparency &= ~block_inner_sides & 0x3F;
+
+				near_transparency |= (near_transparency >> 1);
+				near_transparency = (near_transparency & 1) |
+						((near_transparency >> 1) & 2) |
+						((near_transparency >> 2) & 4);
+
+				// combine with known visible sides that matter
+				near_transparency &= visible_outer_sides;
+
+				// The rule for any far side to be visible:
+				// * Any of the adjacent near sides is transparent (different axes)
+				// * The opposite near side (same axis) is transparent, if it is the dominant axis of the look vector
+
+				// Calculate vector from camera to mapblock center. Because we only need relation between
+				// coordinates we scale by 2 to avoid precision loss.
+				v3s16 precise_look = 2 * (block_pos_nodes - cam_pos_nodes) + MAP_BLOCKSIZE - 1;
+
+				// dominant axis flag
+				u8 dominant_axis = (abs(precise_look.X) > abs(precise_look.Y) && abs(precise_look.X) > abs(precise_look.Z)) |
+							((abs(precise_look.Y) > abs(precise_look.Z) && abs(precise_look.Y) > abs(precise_look.X)) << 1) |
+							((abs(precise_look.Z) > abs(precise_look.X) && abs(precise_look.Z) > abs(precise_look.Y)) << 2);
+
+				// Queue next blocks for processing:
+				// - Examine "far" sides of the current blocks, i.e. never move towards the camera
+				// - Only traverse the sides that are not occluded
+				// - Only traverse the sides that are not opaque
+				// When queueing, mark the relevant side on the next block as 'visible'
+				for (s16 axis = 0; axis < 3; axis++) {
+
+					// Select a bit from transparent_sides for the side
+					u8 far_side_mask = 1 << (2 * axis);
+
+					// axis flag
+					u8 my_side = 1 << axis;
+					u8 adjacent_sides = my_side ^ 0x07;
+
+					auto traverse_far_side = [&](s8 next_pos_offset) {
+						// far side is visible if adjacent near sides are transparent, or if opposite side on dominant axis is transparent
+						bool side_visible = ((near_transparency & adjacent_sides) | (near_transparency & my_side & dominant_axis)) != 0;
+						side_visible = side_visible && ((far_side_mask & transparent_sides) != 0);
+
+						v3s16 next_pos = block_coord;
+						next_pos[axis] += next_pos_offset;
+
+						// If a side is a see-through, mark the next block's side as visible, and queue
+						if (side_visible) {
+							auto &next_flags = blocks_seen.getChunk(next_pos).getBits(next_pos);
+							next_flags |= my_side;
+							blocks_to_consider.push(next_pos);
+						}
+						else {
+							sides_skipped++;
+						}
+					};
 
 
-			// Test the '-' direction of the axis
-			if (look[axis] <= 0 && block_coord[axis] > p_blocks_min[axis])
-				traverse_far_side(-1);
+					// Test the '-' direction of the axis
+					if (look[axis] <= 0 && block_coord[axis] > p_blocks_min[axis])
+						traverse_far_side(-1);
 
-			// Test the '+' direction of the axis
-			far_side_mask <<= 1;
+					// Test the '+' direction of the axis
+					far_side_mask <<= 1;
 
-			if (look[axis] >= 0 && block_coord[axis] < p_blocks_max[axis])
-				traverse_far_side(+1);
+					if (look[axis] >= 0 && block_coord[axis] < p_blocks_max[axis])
+						traverse_far_side(+1);
+				}
+			}
 		}
 	}
 
