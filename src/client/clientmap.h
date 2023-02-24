@@ -219,4 +219,8 @@ private:
 
 	bool m_new_occlusion_culler;
 	bool m_enable_raytraced_culling;
+
+	s32 m_debug_hud = -1;
+	std::vector<v3s16> m_positions;
+
 };

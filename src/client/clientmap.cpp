@@ -18,6 +18,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "clientmap.h"
+#include "clientenvironment.h"
 #include "client.h"
 #include "mapblock_mesh.h"
 #include <IMaterialRenderer.h>
@@ -29,6 +30,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "camera.h"               // CameraModes
 #include "util/basic_macros.h"
 #include "client/renderingengine.h"
+#include "client/shader.h"
+#include "tile.h"
 
 #include <queue>
 
@@ -262,6 +265,8 @@ void ClientMap::updateDrawList()
 	}
 	m_keeplist.clear();
 
+	m_positions.clear();
+
 	v3s16 cam_pos_nodes = floatToInt(m_camera_position, BS);
 
 	v3s16 p_blocks_min;
@@ -380,6 +385,8 @@ void ClientMap::updateDrawList()
 			blocks_occlusion_culled++;
 			continue;
 		}
+
+		m_positions.push_back(block_coord);
 
 		if (mesh_grid.cell_size > 1) {
 			// Block meshes are stored in the corner block of a chunk
@@ -512,7 +519,7 @@ void ClientMap::updateDrawList()
 	g_profiler->avg("MapBlocks occlusion culled [#]", blocks_occlusion_culled);
 	g_profiler->avg("MapBlocks frustum culled [#]", blocks_frustum_culled);
 	g_profiler->avg("MapBlocks sides skipped [#]", sides_skipped);
-	g_profiler->avg("MapBlocks examined [#]", blocks_visited);
+	g_profiler->avg("MapBlocks positions examined [#]", blocks_visited);
 	g_profiler->avg("MapBlocks drawn [#]", m_drawlist.size());
 }
 
@@ -775,6 +782,44 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 		vertex_count += buf->getIndexCount();
 	}
 
+	driver->setTransform(video::ETS_WORLD, core::matrix4());
+	video::SMaterial material;
+	material.MaterialType = m_client->getShaderSource()->getShaderInfo(m_client->getShaderSource()->getShader("default_shader", TILE_MATERIAL_BASIC)).material;
+	material.ZBuffer = video::ECFN_DISABLED;
+	material.ZWriteEnable = video::EZW_OFF;
+	material.BlendOperation = video::EBO_ADD;
+	material.Thickness = 2;
+	material.EmissiveColor = video::SColor(0xFFFFFFFF);
+	// material.TextureLayer[0].Texture = m_client->getTextureSource()->getTexture("blank.png^[colorize:#ffffff:255");
+	driver->setMaterial(material);
+	for (auto it = m_positions.rbegin(); it != m_positions.rend(); ++it) {
+		auto pos = *it;
+		driver->draw3DBox(core::aabbox3df(intToFloat(pos * MAP_BLOCKSIZE, BS) - offset, intToFloat(pos * MAP_BLOCKSIZE + 1, BS) - offset), video::SColor(255, 255, 0, 0));
+		driver->draw3DBox(core::aabbox3df(intToFloat(pos * MAP_BLOCKSIZE, BS) - offset, intToFloat(pos * MAP_BLOCKSIZE + 12, BS) - offset), video::SColor(255, 0, 0, 255));
+	}
+
+	material = video::SMaterial();
+	driver->setMaterial(material);
+	driver->draw3DBox(core::aabbox3df(v3f(), v3f()));
+
+	HudElement *element;
+	if (m_debug_hud == -1) {
+		element = new HudElement;
+		element->type = HudElementType::HUD_ELEM_TEXT;
+		element->pos = v2f(0.05, 0.2);
+		element->align = v2f(1, 1);
+		element->style = 
+		m_debug_hud = m_client->getEnv().getLocalPlayer()->addHud(element);
+	}
+	else
+		element = m_client->getEnv().getLocalPlayer()->getHud(m_debug_hud);
+
+	v3s16 pos = m_positions.size() == 0 ? v3s16() : m_positions[0];
+	v3f rendered_pos = intToFloat(pos * MAP_BLOCKSIZE, BS) - offset;
+	std::string debug_text = std::string("(") + std::to_string(pos.X) + ", " + std::to_string(pos.Y) + ", " + std::to_string(pos.Z) + ")";
+	debug_text += std::string("(") + std::to_string(rendered_pos.X) + ", " + std::to_string(rendered_pos.Y) + ", " + std::to_string(rendered_pos.Z) + ")";
+	element->text = debug_text;
+
 	g_profiler->avg(prefix + "draw meshes [ms]", draw.stop(true));
 
 	// Log only on solid pass because values are the same
@@ -796,6 +841,11 @@ static bool getVisibleBrightness(Map *map, const v3f &p0, v3f dir, float step,
 	const NodeDefManager *ndef, u32 daylight_factor, float sunlight_min_d,
 	int *result, bool *sunlight_seen)
 {
+#ifndef NDEBUG
+	if (sunlight_seen) *sunlight_seen = true;
+	if (result) *result = 255;
+	return true;
+#else
 	int brightness_sum = 0;
 	int brightness_count = 0;
 	float distance = start_distance;
@@ -860,6 +910,7 @@ static bool getVisibleBrightness(Map *map, const v3f &p0, v3f dir, float step,
 	/*std::cerr<<"Sampled "<<brightness_count<<" points; result="
 			<<(*result)<<std::endl;*/
 	return true;
+#endif
 }
 
 int ClientMap::getBackgroundBrightness(float max_d, u32 daylight_factor,
