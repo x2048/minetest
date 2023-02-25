@@ -44,6 +44,7 @@ struct MeshMakeData
 	v3s16 m_crack_pos_relative = v3s16(-1337,-1337,-1337);
 	bool m_smooth_lighting = false;
 	MeshGrid m_mesh_grid;
+	std::unordered_map<v3s16, bool> m_active_blocks;
 	u16 side_length;
 
 	Client *m_client;

@@ -30,6 +30,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "client/meshgen/collector.h"
 #include "client/renderingengine.h"
 #include <array>
+#include <vector>
 #include <algorithm>
 
 /*
@@ -1576,29 +1577,162 @@ video::SColor encode_light(u16 light, u8 emissive_light)
 
 u8 get_solid_sides(MeshMakeData *data)
 {
-	std::unordered_map<v3s16, u8> results;
 	v3s16 ofs;
-	v3s16 blockpos_nodes = data->m_blockpos * MAP_BLOCKSIZE;
-	const NodeDefManager *ndef = data->m_client->ndef();
+	const u16 mesh_chunk = data->side_length / MAP_BLOCKSIZE;
 
+	std::vector<u8> results(mesh_chunk * mesh_chunk * mesh_chunk, 0x80);
+	std::queue<v3s16> undecided_blocks;
+
+	// look through the blocks
+	u16 i = 0;
+	for (ofs.X = 0; ofs.X < mesh_chunk; ofs.X++)
+	for (ofs.Y = 0; ofs.Y < mesh_chunk; ofs.Y++)
+	for (ofs.Z = 0; ofs.Z < mesh_chunk; ofs.Z++, i++) {
+		v3s16 blockpos = data->m_blockpos + ofs;
+
+		if (!data->m_active_blocks[blockpos]) { // we do not have information for the block, defer decision
+			undecided_blocks.push(ofs);
+			continue;
+		}
+
+		v3s16 blockpos_nodes = blockpos * MAP_BLOCKSIZE;
+		const NodeDefManager *ndef = data->m_client->ndef();
+
+		// the order of the sides is -X +X -Y +Y -Z +Z
+		// the order of bits is inverse (+Z -Z +Y -Y +X -X)
+		u8 result = 0x3F; // all sides solid;
+
+		// loop though the block's sides to identify solid sides.
+		for (u16 i = 0; i < MAP_BLOCKSIZE && result != 0; i++)
+		for (u16 j = 0; j < MAP_BLOCKSIZE && result != 0; j++) {
+
+			v3s16 positions[6] = {
+				v3s16(0, i, j),
+				v3s16(MAP_BLOCKSIZE - 1, i, j),
+				v3s16(i, 0, j),
+				v3s16(i, MAP_BLOCKSIZE - 1, j),
+				v3s16(i, j, 0),
+				v3s16(i, j, MAP_BLOCKSIZE - 1)
+			};
+
+			for (u8 k = 0; k < 6; k++) {
+				const MapNode &node = data->m_vmanip.getNodeRefUnsafe(blockpos_nodes + positions[k]);
+				if (ndef->get(node).solidness != 2)
+					result &= ~(1 << k);
+			}
+		}
+
+		results[ofs.X * mesh_chunk * mesh_chunk + ofs.Y * mesh_chunk + ofs.Z] = result;
+	}
+
+	std::queue<v3s16> air_blocks;
+	std::queue<v3s16> possible_solid_blocks;
+
+	// undecided blocks are either fully stone or fully air
+	// blocks that touch air are full-air
+	// blocks that never touch air are full-stone
+	while (!undecided_blocks.empty()) {
+		v3s16 ofs = undecided_blocks.front();
+		undecided_blocks.pop();
+
+		bool known_air = false;
+
+		for (u8 axis = 0; axis < 3; axis++) {
+			u8 neighbor_side_mask = 1 << (axis * 2); // -XYZ
+
+			if (ofs[axis] < mesh_chunk - 1) {
+				v3s16 next_pos = ofs;
+				next_pos[axis] += 1;
+
+				u8 neighbor = results[next_pos.X * mesh_chunk * mesh_chunk + next_pos.Y * mesh_chunk + next_pos.Z];
+				if ((neighbor & (0x80 | neighbor_side_mask)) == 0) { // the matching side is known not solid => this is an air block
+					known_air = true;
+					break;
+				}
+			}
+
+			neighbor_side_mask <<= 1; // swich to +XYZ
+
+			if (ofs[axis] > 0) {
+				v3s16 next_pos = ofs;
+				next_pos[axis] -= 1;
+
+				u8 neighbor = results[next_pos.X * mesh_chunk * mesh_chunk + next_pos.Y * mesh_chunk + next_pos.Z];
+				if ((neighbor & (0x80 | neighbor_side_mask)) == 0) { // the matching side is known not solid => this is an air block
+					known_air = true;
+					break;
+				}
+			}
+		}
+
+		if (known_air) {
+			results[ofs.X * mesh_chunk * mesh_chunk + ofs.Y * mesh_chunk + ofs.Z] = 0;
+			air_blocks.push(ofs);
+		}
+		else {
+			possible_solid_blocks.push(ofs);
+		}
+	}
+
+	while (!air_blocks.empty()) {
+		v3s16 ofs = air_blocks.front();
+		air_blocks.pop();
+
+		for (u8 axis = 0; axis < 3; axis++) {
+
+			if (ofs[axis] < mesh_chunk - 1) {
+				v3s16 next_pos = ofs;
+				next_pos[axis] += 1;
+
+				u8 &neighbor = results[next_pos.X * mesh_chunk * mesh_chunk + next_pos.Y * mesh_chunk + next_pos.Z];
+				if (neighbor & 0x80) { // the neighbor is not decided yet - fill with air
+					neighbor = 0;
+					air_blocks.push(next_pos);
+				}
+			}
+
+			if (ofs[axis] > 0) {
+				v3s16 next_pos = ofs;
+				next_pos[axis] -= 1;
+
+				u8 &neighbor = results[next_pos.X * mesh_chunk * mesh_chunk + next_pos.Y * mesh_chunk + next_pos.Z];
+				if (neighbor & 0x80) { // the neighbor is not decided yet - fill with air
+					neighbor = 0;
+					air_blocks.push(next_pos);
+				}
+			}
+		}
+	}
+
+	while (!possible_solid_blocks.empty()) {
+		v3s16 ofs = possible_solid_blocks.front();
+		possible_solid_blocks.pop();
+
+		u8 &result = results[ofs.X * mesh_chunk * mesh_chunk + ofs.Y * mesh_chunk + ofs.Z];
+		if (result & 0x80)
+			result = 0x3F;
+	}
+
+	// calculate solid sides of the mesh using the results of individual blocks
 	u8 result = 0x3F; // all sides solid;
 
-	for (s16 i = 0; i < data->side_length && result != 0; i++)
-	for (s16 j = 0; j < data->side_length && result != 0; j++) {
+	for (u16 i = 0; i < mesh_chunk && result != 0; i++)
+	for (u16 j = 0; j < mesh_chunk && result != 0; j++) {
 		v3s16 positions[6] = {
 			v3s16(0, i, j),
-			v3s16(data->side_length - 1, i, j),
+			v3s16(mesh_chunk - 1, i, j),
 			v3s16(i, 0, j),
-			v3s16(i, data->side_length - 1, j),
+			v3s16(i, mesh_chunk - 1, j),
 			v3s16(i, j, 0),
-			v3s16(i, j, data->side_length - 1)
+			v3s16(i, j, mesh_chunk - 1)
 		};
 
-		for (u8 k = 0; k < 6; k++) {
-			const MapNode &top = data->m_vmanip.getNodeRefUnsafe(blockpos_nodes + positions[k]);
-			if (ndef->get(top).solidness != 2)
+		for (u16 k = 0; k < 6; k++) {
+			v3s16 ofs = positions[k];
+			if ((results[ofs.X * mesh_chunk * mesh_chunk + ofs.Y * mesh_chunk + ofs.Z] & (1 << k)) == 0)
 				result &= ~(1 << k);
 		}
 	}
+
 	return result;
 }

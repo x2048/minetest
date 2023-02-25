@@ -199,8 +199,9 @@ void MeshUpdateQueue::fillDataFromMapBlocks(QueuedMeshUpdate *q)
 	int i = 0;
 	for (pos.X = q->p.X - 1; pos.X <= q->p.X + data->m_mesh_grid.cell_size; pos.X++)
 	for (pos.Z = q->p.Z - 1; pos.Z <= q->p.Z + data->m_mesh_grid.cell_size; pos.Z++)
-	for (pos.Y = q->p.Y - 1; pos.Y <= q->p.Y + data->m_mesh_grid.cell_size; pos.Y++) {
-		MapBlock *block = q->map_blocks[i++];
+	for (pos.Y = q->p.Y - 1; pos.Y <= q->p.Y + data->m_mesh_grid.cell_size; pos.Y++, i++) {
+		MapBlock *block = q->map_blocks[i];
+		data->m_active_blocks.emplace(pos, block != nullptr);
 		data->fillBlockData(pos, block ? block->getData() : block_placeholder.data);
 	}
 
