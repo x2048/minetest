@@ -22,6 +22,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "irrlichttypes_extrabloated.h"
 #include "map.h"
 #include "camera.h"
+#include "drawlist.h"
 #include <set>
 #include <map>
 
@@ -122,7 +123,7 @@ public:
 	void touchMapBlocks();
 	void updateDrawListShadow(v3f shadow_light_pos, v3f shadow_light_dir, float radius, float length);
 	// Returns true if draw list needs updating before drawing the next frame.
-	bool needsUpdateDrawList() { return m_needs_update_drawlist; }
+	bool needsUpdateDrawList() { return m_ext_drawlist.needsUpdateDrawList(); }
 	void renderMap(video::IVideoDriver* driver, s32 pass);
 
 	void renderMapShadows(video::IVideoDriver *driver,
@@ -142,32 +143,13 @@ public:
 
 	void onSettingChanged(const std::string &name);
 
+	bool isMeshOccluded(MapBlock *mesh_block, u16 mesh_size, v3s16 cam_pos_nodes);
 protected:
 	void reportMetrics(u64 save_time_us, u32 saved_blocks, u32 all_blocks) override;
 private:
-	bool isMeshOccluded(MapBlock *mesh_block, u16 mesh_size, v3s16 cam_pos_nodes);
 
 	// update the vertex order in transparent mesh buffers
 	void updateTransparentMeshBuffers();
-
-
-	// Orders blocks by distance to the camera
-	class MapBlockComparer
-	{
-	public:
-		MapBlockComparer(const v3s16 &camera_block) : m_camera_block(camera_block) {}
-
-		bool operator() (const v3s16 &left, const v3s16 &right) const
-		{
-			auto distance_left = left.getDistanceFromSQ(m_camera_block);
-			auto distance_right = right.getDistanceFromSQ(m_camera_block);
-			return distance_left > distance_right || (distance_left == distance_right && left > right);
-		}
-
-	private:
-		v3s16 m_camera_block;
-	};
-
 
 	// reference to a mesh buffer used when rendering the map.
 	struct DrawDescriptor {
@@ -205,11 +187,8 @@ private:
 	v3s16 m_camera_offset;
 	bool m_needs_update_transparent_meshes = true;
 
-	std::map<v3s16, MapBlock*, MapBlockComparer> m_drawlist;
-	std::vector<MapBlock*> m_keeplist;
+	DrawList m_ext_drawlist;
 	std::map<v3s16, MapBlock*> m_drawlist_shadow;
-	bool m_needs_update_drawlist;
-
 	std::set<v2s16> m_last_drawn_sectors;
 
 	bool m_cache_trilinear_filter;

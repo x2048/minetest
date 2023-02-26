@@ -79,7 +79,7 @@ ClientMap::ClientMap(
 	m_client(client),
 	m_rendering_engine(rendering_engine),
 	m_control(control),
-	m_drawlist(MapBlockComparer(v3s16(0,0,0)))
+	m_ext_drawlist(this)
 {
 
 	/*
@@ -133,7 +133,7 @@ void ClientMap::updateCamera(v3f pos, v3f dir, f32 fov, v3s16 offset)
 
 	// reorder the blocks when camera crosses block boundary
 	if (previous_block != current_block)
-		m_needs_update_drawlist = true;
+		m_ext_drawlist.setNeedsUpdateDrawList(true);
 
 	// reorder transparent meshes when camera crosses node boundary
 	if (previous_node != current_node)
@@ -247,6 +247,7 @@ private:
 
 void ClientMap::updateDrawList()
 {
+#if FALSE
 	ScopeProfiler sp(g_profiler, "CM::updateDrawList()", SPT_AVG);
 
 	m_needs_update_drawlist = false;
@@ -517,6 +518,9 @@ void ClientMap::updateDrawList()
 	g_profiler->avg("MapBlocks sides skipped [#]", sides_skipped);
 	g_profiler->avg("MapBlocks examined [#]", blocks_visited);
 	g_profiler->avg("MapBlocks drawn [#]", m_drawlist.size());
+#else
+	m_ext_drawlist.update(m_camera_position, m_control, m_nodedef, m_client, m_enable_raytraced_culling);
+#endif
 }
 
 void ClientMap::touchMapBlocks()
@@ -642,7 +646,7 @@ void ClientMap::renderMap(video::IVideoDriver* driver, s32 pass)
 	auto is_frustum_culled = m_client->getCamera()->getFrustumCuller();
 
 	const MeshGrid mesh_grid = m_client->getMeshGrid();
-	for (auto &i : m_drawlist) {
+	for (auto &i : m_ext_drawlist.getDrawList()) {
 		v3s16 block_pos = i.first;
 		MapBlock *block = i.second;
 		MapBlockMesh *block_mesh = block->mesh;
@@ -1216,9 +1220,9 @@ void ClientMap::updateTransparentMeshBuffers()
 	u32 unsorted_blocks = 0;
 	f32 sorting_distance_sq = pow(m_cache_transparency_sorting_distance * BS, 2.0f);
 
-
+	auto drawlist = m_ext_drawlist.getDrawList();
 	// Update the order of transparent mesh buffers in each mesh
-	for (auto it = m_drawlist.begin(); it != m_drawlist.end(); it++) {
+	for (auto it = drawlist.begin(); it != drawlist.end(); it++) {
 		MapBlock* block = it->second;
 		if (!block->mesh)
 			continue;

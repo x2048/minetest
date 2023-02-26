@@ -38,6 +38,7 @@ set(client_SRCS
 	${CMAKE_CURRENT_SOURCE_DIR}/content_cao.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/content_cso.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/content_mapblock.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/drawlist.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/filecache.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/fontengine.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/game.cpp
