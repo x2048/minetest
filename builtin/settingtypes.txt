@@ -456,6 +456,10 @@ exposure_compensation	(Exposure compensation) float 0.0 -1.0 1.0
 #    simulating the behavior of human eye.
 enable_auto_exposure (Enable Automatic Exposure) bool false
 
+#    Enable FXAA
+#    When enabled, runs the FXAA (Fast Approximate Anti-Aliasing) filter
+#    as part of post-processing pipeline.
+enable_fxaa (Enable FXAA) bool false
 
 [**Bloom]
 
