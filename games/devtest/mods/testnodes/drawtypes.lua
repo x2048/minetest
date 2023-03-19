@@ -227,7 +227,6 @@ minetest.register_node("testnodes:plantlike_waving", {
 	tiles = { "testnodes_plantlike_waving.png" },
 	waving = 1,
 
-
 	walkable = false,
 	sunlight_propagates = true,
 	groups = { dig_immediate = 3 },
@@ -655,7 +654,7 @@ local scale = function(subname, append, scale_vector, scale_number)
 		orig_desc = ItemStack(original):get_short_description()
 	end
 	def.visual_scale = scale_vector
-	def.description = S("Vector-scaled @1", orig_desc)
+	def.description = S("Vector-scaled @1 (@2)", orig_desc, dump(scale_vector, ""))
 	minetest.register_node("testnodes:"..subname.."_vector_scaled", def)
 	def = table.copy(minetest.registered_items[original])
 	def.visual_scale = scale_number
@@ -669,10 +668,11 @@ local allfaces_newsize_tt = ""..
 	S("* 'opaque': opaque")
 
 scale("allfaces", S("Transparent node"), {x=0.2, y=-0.8, z=0.2}, 2)
-scale("allfaces_optional", allfaces_newsize_tt, {x=0.3, y=1.4, z=0}, 1.5)
-scale("allfaces_optional_waving", allfaces_newsize_tt .. "\n" .. S("Waving if waving leaves are enabled by client"), {x=0.3, y=1.4, z=0}, 1.5)
-scale("plantlike", nil, {x=0.8, y=1.3, z=0.8}, 0.5)
-scale("plantlike_wallmounted", nil, {x=-1, y=1, z=1}, 3)
-scale("torchlike_wallmounted", nil, {x=0.4, y=1.5, z=0.7}, 2)
-scale("signlike_wallmounted", nil, {x=0.5, y=0.5, z=-1}, 1.25)
-scale("firelike", nil, {x=3, y=3, z=3}, 3)
+scale("allfaces_optional", allfaces_newsize_tt, {x=-0.2, y=-1.4, z=-0.8}, -1.5)
+scale("allfaces_optional_waving", allfaces_newsize_tt .. "\n" .. S("Waving if waving leaves are enabled by client"), {x=-0.2, y=-1.4, z=-0.5}, -1.5)
+scale("plantlike", nil, { x=-0.5, y=1.3 }, 0.5)
+scale("plantlike_meshoptions", nil, { x=0.4, y=1.3 }, 0.4)
+scale("plantlike_wallmounted", nil, { x=2, y=0.8 }, 2)
+scale("torchlike_wallmounted", nil, { x=-0.4, y=1.5 }, 1.5)
+scale("signlike_wallmounted", nil, { y=0.5, z=2.0 }, 1.25)
+scale("firelike", nil, { x=2.0, y=1, z=0.3 }, 1.2)
