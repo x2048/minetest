@@ -29,7 +29,6 @@ centroid varying vec2 varTexCoord;
 	uniform vec4 CameraPos;
 
 	varying float cosLight;
-	varying float adj_shadow_strength;
 	varying float f_normal_length;
 	varying vec3 shadow_position;
 	varying float perspective_factor;
@@ -84,7 +83,7 @@ float mtsmoothstep(in float edge0, in float edge1, in float x)
 }
 
 
-vec3 getDirectNaturalLightAtGround(vec3 dayLight, vec3 v_LightDirection)
+vec3 getDirectLightScatteringAtGround(vec3 dayLight, vec3 v_LightDirection)
 {
 	// Based on talk at 2002 Game Developers Conference by Naty Hoffman and Arcot J. Preetham
 	const float beta_r0 = 1e-5; // Rayleigh scattering beta
@@ -95,8 +94,15 @@ vec3 getDirectNaturalLightAtGround(vec3 dayLight, vec3 v_LightDirection)
 
 	const float atmosphere_height = 15000.; // height of the atmosphere in meters
 	// sun/moon light at the ground level, after going through the atmosphere
-	vec3 light_ground = dayLight * exp(-beta_r0_l * atmosphere_height / (1e-25 - dot(v_LightDirection, vec3(0., 1., 0.))));
-	return light_ground;
+	return exp(-beta_r0_l * atmosphere_height / (1e-5 - dot(v_LightDirection, vec3(0., 1., 0.))));
+}
+
+// calculates light intensity from a sun-like or moon-like sky body
+float getLightIntensity(vec3 direction)
+{
+	const float distance_to_size_ratio = 107.143; // ~= 150million km / 1.4 million km
+
+	return clamp(distance_to_size_ratio * dot(vec3(0., 1., 0.), -v_LightDirection), 0., 1.);
 }
 
 #endif
@@ -175,7 +181,7 @@ void main(void)
 	naturalColor += getNaturalLightTint(dot(naturalColor, vec3(0.33)));
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
-	directNaturalLight = getDirectNaturalLightAtGround(vec3(1.0), v_LightDirection);
+	directNaturalLight = getDirectLightScatteringAtGround(vec3(1.0), v_LightDirection) * getLightIntensity(v_LightDirection);
 
 	if (f_shadow_strength > 0.0) {
 		vec3 nNormal = normalize(vNormal);
@@ -205,18 +211,6 @@ void main(void)
 		shadow_position = applyPerspectiveDistortion(m_ShadowViewProj * mWorld * (inVertexPosition + vec4(normalOffsetScale * nNormal, 0.0))).xyz;
 		shadow_position.z -= z_bias;
 		perspective_factor = pFactor;
-
-		if (f_timeofday < 0.2) {
-			adj_shadow_strength = f_shadow_strength * 0.5 *
-				(1.0 - mtsmoothstep(0.18, 0.2, f_timeofday));
-		} else if (f_timeofday >= 0.8) {
-			adj_shadow_strength = f_shadow_strength * 0.5 *
-				mtsmoothstep(0.8, 0.83, f_timeofday);
-		} else {
-			adj_shadow_strength = f_shadow_strength *
-				mtsmoothstep(0.20, 0.25, f_timeofday) *
-				(1.0 - mtsmoothstep(0.7, 0.8, f_timeofday));
-		}
 	}
 #endif
 }
