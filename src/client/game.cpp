@@ -632,7 +632,7 @@ public:
 			float sun_position_array[3] = { sun_position.X, sun_position.Y, sun_position.Z};
 			m_sun_position_pixel.set(sun_position_array, services);
 
-			float sun_brightness = MYMAX(0.f, daynight_ratio / 1000.f - 1. + 0.75) / 0.75;
+			float sun_brightness = rangelim(107.143f * m_sky->getSunDirection().dotProduct(v3f(0.f, 1.f, 0.f)), 0.f, 1.f);
 			m_sun_brightness_pixel.set(&sun_brightness, services);
 		}
 		else {
@@ -652,7 +652,7 @@ public:
 			float moon_position_array[3] = { moon_position.X, moon_position.Y, moon_position.Z};
 			m_moon_position_pixel.set(moon_position_array, services);
 
-			float moon_brightness = -MYMIN(0.f, daynight_ratio / 1000.f - 0.55) / 0.55;
+			float moon_brightness = rangelim(107.143f * m_sky->getMoonDirection().dotProduct(v3f(0.f, 1.f, 0.f)), 0.f, 1.f);
 			m_moon_brightness_pixel.set(&moon_brightness, services);
 		}
 		else {
