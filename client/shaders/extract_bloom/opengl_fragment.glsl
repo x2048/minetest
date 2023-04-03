@@ -59,7 +59,7 @@ float sampleVolumetricLight(vec2 uv, vec3 lightVec, float rawDepth)
 	return result / samples;
 }
 
-vec3 getDirectNaturalLightAtGround(vec3 dayLight, vec3 v_LightDirection)
+vec3 getDirectLightScatteringAtGround(vec3 v_LightDirection)
 {
 	// Based on talk at 2002 Game Developers Conference by Naty Hoffman and Arcot J. Preetham
 	const float beta_r0 = 1e-5; // Rayleigh scattering beta
@@ -70,8 +70,41 @@ vec3 getDirectNaturalLightAtGround(vec3 dayLight, vec3 v_LightDirection)
 
 	const float atmosphere_height = 15000.; // height of the atmosphere in meters
 	// sun/moon light at the ground level, after going through the atmosphere
-	vec3 light_ground = dayLight * exp(-beta_r0_l * atmosphere_height / (1e-25 - dot(v_LightDirection, vec3(0., 1., 0.))));
-	return light_ground;
+	return exp(-beta_r0_l * atmosphere_height / (1e-5 - dot(v_LightDirection, vec3(0., 1., 0.))));
+}
+
+vec3 applyVolumetricLight(vec3 color, vec2 uv, float rawDepth)
+{
+	vec3 lookDirection = normalize(vec3(uv.x * 2. - 1., uv.y * 2. - 1., rawDepth));
+	vec3 lightSourceTint = vec3(1.0, 0.98, 0.4);
+
+	const float boost = 4.0;
+	float brightness = 0.;
+	vec3 sourcePosition = vec3(-1., -1., -1);
+
+	if (sunPositionScreen.z > 0. && sunBrightness > 0.) {
+		brightness = sunBrightness;
+		sourcePosition = sunPositionScreen;
+	}
+	else if (moonPositionScreen.z > 0. && moonBrightness > 0.) {
+		lightSourceTint = vec3(0.4, 0.9, 1.);
+		brightness = moonBrightness * 0.05;
+		sourcePosition = moonPositionScreen;
+	}
+
+	float cameraDirectionFactor = pow(clamp(dot(sourcePosition, vec3(0., 0., 1.)), 0.0, 0.7), 2.5);
+	float viewAngleFactor = pow(max(0., dot(sourcePosition, lookDirection)), 4.);
+
+	float lightFactor = brightness * sampleVolumetricLight(uv, sourcePosition, rawDepth) *
+			(0.05 * cameraDirectionFactor + 0.95 * viewAngleFactor);
+
+	color = mix(color, boost * getDirectLightScatteringAtGround(v_LightDirection) * dayLight, lightFactor);
+
+	// if (sunPositionScreen.z < 0.)
+	// 	color.rg += 1. - clamp(abs((2. * uv.xy - 1.) - sunPositionScreen.xy / sunPositionScreen.z) * 1000., 0., 1.);
+	// if (moonPositionScreen.z < 0.)
+	// 	color.rg += 1. - clamp(abs((2. * uv.xy - 1.) - moonPositionScreen.xy / moonPositionScreen.z) * 1000., 0., 1.);
+	return color;
 }
 
 void main(void)
@@ -88,37 +121,8 @@ void main(void)
 #endif
 
 	float rawDepth = texture2D(depthmap, uv).r;
-	float depth = mapDepth(rawDepth);
-	vec3 lookDirection = normalize(vec3(uv.x * 2. - 1., uv.y * 2. - 1., 1. / tan(36. / 180. * 3.141596)));
-	vec3 lightSourceTint = vec3(1.0, 0.98, 0.4);
-	const float sunBoost = 4.0;
-	const float moonBoost = 2.0;
 
-	float boost = 0.;
-	float brightness = 0.;
-	vec3 sourcePosition = vec3(-1., -1., -1);
-
-	if (sunPositionScreen.z > 0. && sunBrightness > 0.) {
-		boost = sunBoost;
-		brightness = sunBrightness;
-		sourcePosition = sunPositionScreen;
-	}
-	else if (moonPositionScreen.z > 0. && moonBrightness > 0.) {
-		lightSourceTint = vec3(0.4, 0.9, 1.);
-		boost = moonBoost;
-		brightness = moonBrightness * 0.33;
-		sourcePosition = moonPositionScreen;
-	}
-
-	float lightFactor = brightness * sampleVolumetricLight(uv, sourcePosition, rawDepth) *
-			(0.05 * pow(clamp(dot(sourcePosition, vec3(0., 0., 1.)), 0.0, 0.7), 2.5) + 0.95 * pow(max(0., dot(sourcePosition, lookDirection)), 8.));
-
-	color.rgb = mix(color.rgb, boost * getDirectNaturalLightAtGround(dayLight,v_LightDirection), lightFactor);
-
-	// if (sunPositionScreen.z < 0.)
-	// 	color.rg += 1. - clamp(abs((2. * uv.xy - 1.) - sunPositionScreen.xy / sunPositionScreen.z) * 1000., 0., 1.);
-	// if (moonPositionScreen.z < 0.)
-	// 	color.rg += 1. - clamp(abs((2. * uv.xy - 1.) - moonPositionScreen.xy / moonPositionScreen.z) * 1000., 0., 1.);
+	color = applyVolumetricLight(color, uv, rawDepth);
 
 	gl_FragColor = vec4(color, 1.0); // force full alpha to avoid holes in the image.
 }
