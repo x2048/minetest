@@ -93,7 +93,7 @@ vec3 applyVolumetricLight(vec3 color, vec2 uv, float rawDepth)
 	}
 
 	float cameraDirectionFactor = pow(clamp(dot(sourcePosition, vec3(0., 0., 1.)), 0.0, 0.7), 2.5);
-	float viewAngleFactor = pow(max(0., dot(sourcePosition, lookDirection)), 4.);
+	float viewAngleFactor = pow(max(0., dot(sourcePosition, lookDirection)), 8.);
 
 	float lightFactor = brightness * sampleVolumetricLight(uv, sourcePosition, rawDepth) *
 			(0.05 * cameraDirectionFactor + 0.95 * viewAngleFactor);
