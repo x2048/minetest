@@ -400,6 +400,9 @@ enable_dynamic_shadows (Dynamic shadows) bool false
 #    Lower value means lighter shadows, higher value means darker shadows.
 shadow_strength_gamma (Shadow strength gamma) float 1.0 0.1 10.0
 
+#    Distortion of the shadow map
+perspective_bias (Perspective Bias) float 0.8 0.0 0.99
+
 #    Maximum distance to render shadows.
 shadow_map_max_distance (Shadow map max distance in nodes to render shadows) float 120.0 10.0 1000.0
 

@@ -33,7 +33,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 ShadowRenderer::ShadowRenderer(IrrlichtDevice *device, Client *client) :
 		m_smgr(device->getSceneManager()), m_driver(device->getVideoDriver()),
 		m_client(client), m_current_frame(0),
-		m_perspective_bias_xy(0.8), m_perspective_bias_z(0.5)
+		m_perspective_bias_xy(g_settings->getFloat("perspective_bias")), m_perspective_bias_z(0.5)
 {
 	(void) m_client;
 
@@ -380,7 +380,7 @@ void ShadowRenderer::update(video::ITexture *outputTarget)
 void ShadowRenderer::drawDebug()
 {
 	/* this code just shows shadows textures in screen and in ONLY for debugging*/
-	#if 0
+	#if 1
 	// this is debug, ignore for now.
 	if (shadowMapTextureFinal)
 		m_driver->draw2DImage(shadowMapTextureFinal,
