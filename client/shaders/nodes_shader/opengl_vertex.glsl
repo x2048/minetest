@@ -120,7 +120,7 @@ float getLightIntensity(vec3 direction)
 
 vec3 getArtificialLightTint(float intensity)
 {
-	float temperature = 4250. + 3250. * (0.0 + 1.0 * pow(intensity, 1.0));
+	float temperature = 3250. + 4250. * (0.0 + 0.25 * pow(intensity, 1.2));
 	// Aproximation of RGB values for specific color temperature in range of 2500K to 7500K
 	// Based on the table at https://andi-siess.de/rgb-to-color-temperature/
 	vec3 color = min(temperature * vec3(0., 9.11765e-05, 1.77451e-04) + vec3(1., 0.403431, -0.161275),
@@ -253,17 +253,13 @@ void main(void)
 	vec4 color = inVertexColor;
 #endif
 	// The alpha gives the ratio of sunlight in the incoming light.
-	nightRatio = 1.0 - color.a;
+	nightRatio = 1.0 - color.a;;
+	color.rgb *= 2.0;
 
-	// turns out that nightRatio falls off much faster than
-	// actual brightness of artificial light in relation to natual light.
-	// Power ratio was measured on torches in MTG (brightness = 14).
-	float adjusted_night_ratio = pow(max(0.0, nightRatio), 0.6);
-
-	artificialColor = color.rgb * adjusted_night_ratio * 2.0;
+	artificialColor = color.rgb * nightRatio;
 	artificialColor *= getArtificialLightTint(dot(artificialColor, vec3(0.33)));
 
-	naturalColor = color.rgb * (1.0 - adjusted_night_ratio) * 2.0;
+	naturalColor = color.rgb * (1.0 - nightRatio);
 	naturalColor += getNaturalLightTint(dot(naturalColor, vec3(0.33)));
 
 #ifdef ENABLE_DYNAMIC_SHADOWS

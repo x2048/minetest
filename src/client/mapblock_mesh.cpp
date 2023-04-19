@@ -980,10 +980,6 @@ video::SColor encode_light(u16 light, u8 emissive_light)
 	// Since we don't know if the day light is sunlight or
 	// artificial light, assume it is artificial when the night
 	// light bank is also lit.
-	if (day < night)
-		day = 0;
-	else
-		day = day - night;
 	u32 sum = day + night;
 	// Ratio of sunlight:
 	u32 r;

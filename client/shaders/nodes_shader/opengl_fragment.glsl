@@ -437,13 +437,18 @@ void main(void)
 
 		// apply shadow to natural light
 		naturalLight *=
-				ambientLightStrength + // natural ambient light
+				1.0 + // natural ambient light
 				directNaturalLight * max(vec3(1.0 - shadow_int), shadow_color.rgb) * lightSourceStrength; // shaded sunlight/moonlight
 
 	}
 #endif
 
 	color.rgb *= artificialColor + naturalLight * dayLight;
+
+	// float artificialIntensity = dot(artificialColor, vec3(0.213, 0.715, 0.072));
+	// float naturalIntensity = dot(naturalLight * dayLight, vec3(0.213, 0.715, 0.072));
+	// float artificialRate = artificialIntensity / max(artificialIntensity, naturalIntensity + 1e-3);
+	// color.rgb *= mix(artificialColor, naturalLight * dayLight, 1. - artificialRate);
 
 	// Due to a bug in some (older ?) graphics stacks (possibly in the glsl compiler ?),
 	// the fog will only be rendered correctly if the last operation before the
