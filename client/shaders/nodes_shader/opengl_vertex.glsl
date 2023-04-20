@@ -221,7 +221,7 @@ void main(void)
 	color.b += max(0.0, 0.021 - abs(0.2 * brightness - 0.021) +
 		0.07 * brightness);
 
-	varColor = clamp(color, 0.0, 1.0);
+	varColor = clamp(pow(color, vec4(2.2)), 0.0, 1.0);
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
 	if (f_shadow_strength > 0.0) {

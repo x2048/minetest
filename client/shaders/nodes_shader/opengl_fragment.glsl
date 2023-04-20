@@ -378,7 +378,7 @@ void main(void)
 		discard;
 #endif
 
-	color = base.rgb;
+	color = pow(base.rgb, vec3(2.2));
 	vec4 col = vec4(color.rgb * varColor.rgb, 1.0);
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
@@ -448,7 +448,7 @@ void main(void)
 	// Note: clarity = (1 - fogginess)
 	float clarity = clamp(fogShadingParameter
 		- fogShadingParameter * length(eyeVec) / fogDistance, 0.0, 1.0);
-	col = mix(skyBgColor, col, clarity);
+	col.rgb = mix(pow(skyBgColor.rgb, vec3(2.2)), col.rgb, clarity);
 	col = vec4(col.rgb, base.a);
 
 	gl_FragData[0] = col;

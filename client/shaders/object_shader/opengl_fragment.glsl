@@ -378,7 +378,7 @@ void main(void)
 		discard;
 #endif
 
-	color = base.rgb;
+	color = pow(base.rgb, vec3(2.2));
 	vec4 col = vec4(color.rgb * varColor.rgb, 1.0);
 	col.rgb *= vIDiff;
 

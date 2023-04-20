@@ -93,7 +93,7 @@ void main(void)
 #endif
 
 	// translate to linear colorspace (approximate)
-	color.rgb = pow(color.rgb, vec3(2.2));
+	// color.rgb = pow(color.rgb, vec3(2.2));
 
 #ifdef ENABLE_BLOOM_DEBUG
 	if (uv.x > 0.5 || uv.y > 0.5)
