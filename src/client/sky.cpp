@@ -165,7 +165,7 @@ void Sky::render()
 			video::SColor texel_color (255, texel->getRed(),
 				texel->getGreen(), texel->getBlue());
 			m_sun_tonemap->unlock();
-			m_materials[3].EmissiveColor = texel_color;
+			m_materials[3].EmissiveColor = applyGamma(texel_color);
 		}
 
 		if (m_moon_tonemap) {
@@ -174,7 +174,7 @@ void Sky::render()
 			video::SColor texel_color (255, texel->getRed(),
 				texel->getGreen(), texel->getBlue());
 			m_moon_tonemap->unlock();
-			m_materials[4].EmissiveColor = texel_color;
+			m_materials[4].EmissiveColor = applyGamma(texel_color);
 		}
 
 		const f32 t = 1.0f;
@@ -184,7 +184,7 @@ void Sky::render()
 
 		driver->setMaterial(m_materials[1]);
 
-		video::SColor cloudyfogcolor = m_bgcolor;
+		video::SColor cloudyfogcolor = applyGamma(m_bgcolor);
 
 		// Abort rendering if we're in the clouds.
 		// Stops rendering a pure white hole in the bottom of the skybox.
@@ -229,10 +229,10 @@ void Sky::render()
 		if (m_visible) {
 			driver->setMaterial(m_materials[1]);
 			for (u32 j = 0; j < 4; j++) {
-				vertices[0] = video::S3DVertex(-1, -0.02, -1, 0, 0, 1, m_bgcolor, t, t);
-				vertices[1] = video::S3DVertex( 1, -0.02, -1, 0, 0, 1, m_bgcolor, o, t);
-				vertices[2] = video::S3DVertex( 1, 0.45, -1, 0, 0, 1, m_skycolor, o, o);
-				vertices[3] = video::S3DVertex(-1, 0.45, -1, 0, 0, 1, m_skycolor, t, o);
+				vertices[0] = video::S3DVertex(-1, -0.02, -1, 0, 0, 1, applyGamma(m_bgcolor), t, t);
+				vertices[1] = video::S3DVertex( 1, -0.02, -1, 0, 0, 1, applyGamma(m_bgcolor), o, t);
+				vertices[2] = video::S3DVertex( 1, 0.45, -1, 0, 0, 1, applyGamma(m_skycolor), o, o);
+				vertices[3] = video::S3DVertex(-1, 0.45, -1, 0, 0, 1, applyGamma(m_skycolor), t, o);
 				for (video::S3DVertex &vertex : vertices) {
 					if (j == 0)
 						// Don't switch

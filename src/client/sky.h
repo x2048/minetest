@@ -31,6 +31,15 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 class ITextureSource;
 
+inline video::SColor applyGamma(video::SColor color) {
+	return video::SColor(
+		color.getAlpha(),
+		255.0f * std::pow(color.getRed() / 255.0f, 2.2),
+		255.0f * std::pow(color.getGreen() / 255.0f, 2.2),
+		255.0f * std::pow(color.getBlue() / 255.0f, 2.2)
+	);
+}
+
 // Skybox, rendered with zbuffer turned off, before all other nodes.
 class Sky : public scene::ISceneNode
 {
@@ -59,9 +68,9 @@ public:
 		return m_visible ? m_bgcolor : m_fallback_bg_color;
 	}
 
-	const video::SColor &getSkyColor() const
+	video::SColor getSkyColor() const
 	{
-		return m_visible ? m_skycolor : m_fallback_bg_color;
+		return applyGamma(m_visible ? m_skycolor : m_fallback_bg_color);
 	}
 
 	void setSunVisible(bool sun_visible) { m_sun_params.visible = sun_visible; }
