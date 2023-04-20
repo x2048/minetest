@@ -163,8 +163,9 @@ void main(void)
 #else
 	vec4 color = inVertexColor;
 #endif
+	color = pow(color, vec4(2.2));
 
-	color *= emissiveColor;
+	color *= pow(emissiveColor, vec4(2.2));
 
 	// The alpha gives the ratio of sunlight in the incoming light.
 	nightRatio = 1.0 - color.a;
