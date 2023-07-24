@@ -248,6 +248,7 @@ struct TileLayer
 			material.TextureLayers[0].TextureWrapV = video::ETC_CLAMP_TO_EDGE;
 			material.TextureLayers[1].TextureWrapV = video::ETC_CLAMP_TO_EDGE;
 		}
+		material.Shininess = emission;
 	}
 
 	bool isTransparent() const
@@ -280,6 +281,8 @@ struct TileLayer
 		MATERIAL_FLAG_BACKFACE_CULLING |
 		MATERIAL_FLAG_TILEABLE_HORIZONTAL|
 		MATERIAL_FLAG_TILEABLE_VERTICAL;
+	
+	f32 emission = 1.0f;
 
 	//! If true, the tile has its own color.
 	bool has_color = false;
@@ -313,8 +316,6 @@ struct TileSpec
 	bool world_aligned = false;
 	//! Tile rotation.
 	TileRotation rotation = TileRotation::None;
-	//! This much light does the tile emit.
-	u8 emissive_light = 0;
 	//! The first is base texture, the second is overlay.
 	TileLayer layers[MAX_TILE_LAYERS];
 };
