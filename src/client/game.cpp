@@ -401,6 +401,8 @@ class GameGlobalShaderConstantSetter : public IShaderConstantSetter
 	CachedPixelShaderSetting<float> m_bloom_radius_pixel;
 	float m_bloom_radius;
 	CachedPixelShaderSetting<float> m_saturation_pixel;
+	CachedPixelShaderSetting<float> m_emission_pixel;
+	float emission;
 
 public:
 	void onSettingsChange(const std::string &name)
@@ -458,7 +460,8 @@ public:
 		m_bloom_intensity_pixel("bloomIntensity"),
 		m_bloom_strength_pixel("bloomStrength"),
 		m_bloom_radius_pixel("bloomRadius"),
-		m_saturation_pixel("saturation")
+		m_saturation_pixel("saturation"),
+		m_emission_pixel("emission")
 	{
 		g_settings->registerChangedCallback("enable_fog", settingsCallback, this);
 		g_settings->registerChangedCallback("exposure_compensation", settingsCallback, this);
@@ -576,6 +579,8 @@ public:
 		}
 		float saturation = m_client->getEnv().getLocalPlayer()->getLighting().saturation;
 		m_saturation_pixel.set(&saturation, services);
+
+		m_emission_pixel.set(&emission, services);
 	}
 
 	void onSetMaterial(const video::SMaterial &material)
@@ -590,6 +595,7 @@ public:
 			m_texel_size0_values[0] = 0.f;
 			m_texel_size0_values[1] = 0.f;
 		}
+		emission = material.Shininess;
 	}
 };
 
