@@ -961,7 +961,7 @@ void ContentFeatures::updateTextures(ITextureSource *tsrc, IShaderSource *shdsrc
 		overlay_material = TILE_MATERIAL_LIQUID_TRANSPARENT;
 
 	u32 overlay_shader = shdsrc->getShader("nodes_shader", overlay_material, drawtype);
-	const f32 EMISSION = 1.0f;
+	const f32 EMISSION = 1.5f;
 
 	// Tiles (fill in f->tiles[])
 	for (u16 j = 0; j < 6; j++) {
