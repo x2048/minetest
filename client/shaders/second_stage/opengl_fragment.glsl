@@ -95,6 +95,10 @@ void main(void)
 	// translate to linear colorspace (approximate)
 	color.rgb = pow(color.rgb, vec3(2.2));
 
+#ifdef ENABLE_TONE_MAPPING
+	color.rgb = applySaturation(color.rgb, 1.1);
+#endif	
+
 #ifdef ENABLE_BLOOM_DEBUG
 	if (uv.x > 0.5 || uv.y > 0.5)
 #endif
