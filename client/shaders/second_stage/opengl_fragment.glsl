@@ -96,7 +96,7 @@ void main(void)
 	color.rgb = pow(color.rgb, vec3(2.2));
 
 #if ENABLE_TONE_MAPPING
-	color.rgb = applySaturation(color.rgb, 1.1);
+	color.rgb = applySaturation(color.rgb, 1.25);
 #endif	
 
 #ifdef ENABLE_BLOOM_DEBUG
