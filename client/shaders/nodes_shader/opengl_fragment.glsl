@@ -386,7 +386,7 @@ void main(void)
 		final_emission = 1.0;
 	else
 		gamma = 2.0;
-	vec4 col = vec4(pow(color.rgb * varColor.rgb * final_emission, vec3(gamma)), 1.0);
+	vec4 col = vec4(pow(color.rgb * varColor.rgb, vec3(gamma)) * final_emission, 1.0);
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
 	if (f_shadow_strength > 0.0) {
