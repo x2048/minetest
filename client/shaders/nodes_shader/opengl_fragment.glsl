@@ -391,12 +391,10 @@ void main(void)
 
 	vec3 naturalLight = naturalColor;
 	float final_emission = emission;
-	float gamma = 1.0;
 	if (final_emission * 1.0 != final_emission || final_emission <= 1.0)
 		final_emission = 1.0;
-	else
-		gamma = 2.0;
-	color = pow(color, vec3(gamma)) * final_emission;
+
+	vec4 col = vec4(color + int(dot(color, luminanceFactors) > 0.35) * color * (final_emission - 1.0), 1.0);
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
 	if (f_shadow_strength > 0.0) {
