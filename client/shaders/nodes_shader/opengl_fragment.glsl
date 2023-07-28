@@ -394,7 +394,7 @@ void main(void)
 	if (final_emission * 1.0 != final_emission || final_emission <= 1.0)
 		final_emission = 1.0;
 
-	vec4 col = vec4(color + int(dot(color, luminanceFactors) > 0.35) * color * (final_emission - 1.0), 1.0);
+	color += int(dot(color, luminanceFactors) > 0.35) * color * (final_emission - 1.0);
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
 	if (f_shadow_strength > 0.0) {
