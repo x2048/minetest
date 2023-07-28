@@ -396,7 +396,7 @@ void main(void)
 		final_emission = 1.0;
 	else
 		gamma = 2.0;
-	color = pow(color * final_emission, vec3(gamma));
+	color = pow(color, vec3(gamma)) * final_emission;
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
 	if (f_shadow_strength > 0.0) {
