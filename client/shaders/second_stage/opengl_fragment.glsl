@@ -95,7 +95,7 @@ void main(void)
 	// translate to linear colorspace (approximate)
 	color.rgb = pow(color.rgb, vec3(2.2));
 
-#ifdef ENABLE_TONE_MAPPING
+#if ENABLE_TONE_MAPPING
 	color.rgb = applySaturation(color.rgb, 1.1);
 #endif	
 
