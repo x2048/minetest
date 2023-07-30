@@ -394,7 +394,10 @@ void main(void)
 	if (final_emission * 1.0 != final_emission || final_emission <= 1.0)
 		final_emission = 1.0;
 
-	color *= 1.0 + pow(dot(color, luminanceFactors), 3.0) * (max(0., final_emission - 1.0));
+	color = pow(color, vec3(2.2));
+	const float emission_strength = 4.0;
+	color *= (1. + pow(dot(color, luminanceFactors), 3.0) * emission_strength * (max(0., final_emission - 1.0)));
+	color = pow(color, vec3(1./2.2));
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
 	if (f_shadow_strength > 0.0) {
