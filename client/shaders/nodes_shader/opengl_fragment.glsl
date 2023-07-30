@@ -385,7 +385,12 @@ void main(void)
 		final_emission = 1.0;
 
 	color *= varColor.rgb;
-	vec4 col = vec4(color + pow(color, vec3(4.0)) * (final_emission - 1.0), 1.0);
+	color = pow(color, vec3(2.2));
+	const float emission_strength = 4.0;
+	const vec3 luminanceFactors = vec3(0.213, 0.715, 0.072);
+	color *= (1. + pow(dot(color, luminanceFactors), 3.0) * emission_strength * (max(0., final_emission - 1.0)));
+	color = pow(color, vec3(1./2.2));
+	vec4 col = vec4(color, 1.0);
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
 	if (f_shadow_strength > 0.0) {
