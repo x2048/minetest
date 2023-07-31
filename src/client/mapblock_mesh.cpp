@@ -778,7 +778,8 @@ MapBlockMesh::MapBlockMesh(MeshMakeData *data, v3s16 camera_offset):
 				p.layer.applyMaterialOptionsWithShaders(material);
 				if (p.layer.normal_texture)
 					material.setTexture(1, p.layer.normal_texture);
-				material.setTexture(2, p.layer.flags_texture);
+				// material.setTexture(2, p.layer.flags_texture);
+				material.setTexture(2, p.layer.material_texture);
 			} else {
 				p.layer.applyMaterialOptions(material);
 			}

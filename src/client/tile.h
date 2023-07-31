@@ -103,6 +103,7 @@ public:
 	virtual Palette* getPalette(const std::string &name) = 0;
 	virtual bool isKnownSourceImage(const std::string &name)=0;
 	virtual video::ITexture* getNormalTexture(const std::string &name)=0;
+	virtual video::ITexture *getMaterialTexture(const std::string &name)=0;
 	virtual video::SColor getTextureAverageColor(const std::string &name)=0;
 	virtual video::ITexture *getShaderFlagsTexture(bool normalmap_present)=0;
 };
@@ -265,6 +266,7 @@ struct TileLayer
 
 	video::ITexture *texture = nullptr;
 	video::ITexture *normal_texture = nullptr;
+	video::ITexture *material_texture = nullptr;
 	video::ITexture *flags_texture = nullptr;
 
 	u32 shader_id = 0;

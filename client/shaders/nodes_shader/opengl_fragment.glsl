@@ -1,4 +1,5 @@
 uniform sampler2D baseTexture;
+uniform sampler2D materialTexture;
 
 uniform vec3 dayLight;
 uniform vec4 skyBgColor;
@@ -366,6 +367,7 @@ void main(void)
 	vec2 uv = varTexCoord.st;
 
 	vec4 base = texture2D(baseTexture, uv).rgba;
+	vec4 material = texture2D(materialTexture, uv).rgba;
 	// If alpha is zero, we can just discard the pixel. This fixes transparency
 	// on GPUs like GC7000L, where GL_ALPHA_TEST is not implemented in mesa,
 	// and also on GLES 2, where GL_ALPHA_TEST is missing entirely.
@@ -379,6 +381,7 @@ void main(void)
 #endif
 
 	color = base.rgb;
+	vec3 emission = 8. * pow(base.rgb, vec3(2.2)) * material.r;
 	vec4 col = vec4(color.rgb * varColor.rgb, 1.0);
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
@@ -449,6 +452,7 @@ void main(void)
 	float clarity = clamp(fogShadingParameter
 		- fogShadingParameter * length(eyeVec) / fogDistance, 0.0, 1.0);
 	col = mix(skyBgColor, col, clarity);
+	col.rgb = pow(pow(col.rgb, vec3(2.2)) + emission, vec3(1./2.2));
 	col = vec4(col.rgb, base.a);
 
 	gl_FragData[0] = col;

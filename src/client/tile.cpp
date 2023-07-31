@@ -381,6 +381,7 @@ public:
 	video::ITexture* getNormalTexture(const std::string &name);
 	video::SColor getTextureAverageColor(const std::string &name);
 	video::ITexture *getShaderFlagsTexture(bool normamap_present);
+	video::ITexture *getMaterialTexture(const std::string& name);
 
 private:
 
@@ -2741,6 +2742,36 @@ video::SColor TextureSource::getTextureAverageColor(const std::string &name)
 	return c;
 }
 
+video::ITexture *TextureSource::getMaterialTexture(const std::string& name)
+{
+	std::string tname = name;
+	if (!tname.empty()) {
+		std::string::size_type pos = tname.find_last_of(".");
+		if (pos == std::string::npos)
+			tname = name + "_material";
+		else
+			tname.insert(pos, "_material");
+
+		if (isKnownSourceImage(tname))
+			return getTexture(tname);
+	}
+
+	tname = "default_material";
+
+	if (isKnownSourceImage(tname))
+		return getTexture(tname);
+	
+	video::IVideoDriver *driver = RenderingEngine::get_video_driver();
+	video::IImage *image = driver->createImage(
+		video::ECF_A8R8G8B8, core::dimension2d<u32>(1, 1));
+	sanity_check(image != NULL);
+	video::SColor c(0, 0, 0, 0); // default material properties: _ emission _ _
+	image->setPixel(0, 0, c);
+	insertSourceImage(tname, image);
+	image->drop();
+	return getTexture(tname);
+}
+
 
 video::ITexture *TextureSource::getShaderFlagsTexture(bool normalmap_present)
 {
@@ -2760,7 +2791,6 @@ video::ITexture *TextureSource::getShaderFlagsTexture(bool normalmap_present)
 	insertSourceImage(tname, flags_image);
 	flags_image->drop();
 	return getTexture(tname);
-
 }
 
 std::vector<std::string> getTextureDirs()
