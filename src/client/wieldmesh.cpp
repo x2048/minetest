@@ -757,14 +757,16 @@ void postProcessNodeMesh(scene::SMesh *mesh, const ContentFeatures &f,
 				material.setTexture(0, layer->texture);
 			}
 			if (use_shaders) {
-				if (layer->normal_texture) {
-					if (layer->animation_frame_count > 1) {
-						const FrameSpec &animation_frame = (*layer->frames)[0];
+				if (layer->animation_frame_count > 1) {
+					const FrameSpec &animation_frame = (*layer->frames)[0];
+					if (animation_frame.normal_texture)
 						material.setTexture(1, animation_frame.normal_texture);
-					} else
+					material.setTexture(2, animation_frame.material_texture);
+				} else {
+					if (layer->normal_texture)
 						material.setTexture(1, layer->normal_texture);
+					material.setTexture(2, layer->material_texture);
 				}
-				material.setTexture(2, layer->flags_texture);
 			}
 			if (apply_scale && tile->world_aligned) {
 				u32 n = buf->getVertexCount();

@@ -381,7 +381,7 @@ void main(void)
 #endif
 
 	color = base.rgb;
-	vec3 emission = 8. * pow(base.rgb, vec3(2.2)) * material.r;
+	vec3 emission = 2. * pow(base.rgb, vec3(2.2)) * material.r;
 	vec4 col = vec4(color.rgb * varColor.rgb, 1.0);
 
 #ifdef ENABLE_DYNAMIC_SHADOWS

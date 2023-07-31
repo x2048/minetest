@@ -735,6 +735,7 @@ MapBlockMesh::MapBlockMesh(MeshMakeData *data, v3s16 camera_offset):
 				}
 				// Replace tile texture with the first animation frame
 				p.layer.texture = (*p.layer.frames)[0].texture;
+				p.layer.material_texture = (*p.layer.frames)[0].material_texture;
 			}
 
 			if (!m_enable_shaders) {
@@ -778,7 +779,6 @@ MapBlockMesh::MapBlockMesh(MeshMakeData *data, v3s16 camera_offset):
 				p.layer.applyMaterialOptionsWithShaders(material);
 				if (p.layer.normal_texture)
 					material.setTexture(1, p.layer.normal_texture);
-				// material.setTexture(2, p.layer.flags_texture);
 				material.setTexture(2, p.layer.material_texture);
 			} else {
 				p.layer.applyMaterialOptions(material);
@@ -891,7 +891,7 @@ bool MapBlockMesh::animate(bool faraway, float time, int crack,
 		if (m_enable_shaders) {
 			if (frame.normal_texture)
 				buf->getMaterial().setTexture(1, frame.normal_texture);
-			buf->getMaterial().setTexture(2, frame.flags_texture);
+			buf->getMaterial().setTexture(2, frame.material_texture);
 		}
 	}
 

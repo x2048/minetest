@@ -173,7 +173,7 @@ struct FrameSpec
 	u32 texture_id = 0;
 	video::ITexture *texture = nullptr;
 	video::ITexture *normal_texture = nullptr;
-	video::ITexture *flags_texture = nullptr;
+	video::ITexture *material_texture = nullptr;
 };
 
 #define MAX_TILE_LAYERS 2
@@ -267,7 +267,6 @@ struct TileLayer
 	video::ITexture *texture = nullptr;
 	video::ITexture *normal_texture = nullptr;
 	video::ITexture *material_texture = nullptr;
-	video::ITexture *flags_texture = nullptr;
 
 	u32 shader_id = 0;
 

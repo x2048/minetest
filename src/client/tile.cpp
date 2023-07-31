@@ -2746,13 +2746,17 @@ video::ITexture *TextureSource::getMaterialTexture(const std::string& name)
 {
 	std::string tname = name;
 	if (!tname.empty()) {
-		std::string::size_type pos = tname.find_last_of(".");
-		if (pos == std::string::npos)
+		std::string::size_type dot_pos = tname.find(".");
+		if (dot_pos == std::string::npos)
 			tname = name + "_material";
 		else
-			tname.insert(pos, "_material");
+			tname.insert(dot_pos, "_material");
 
-		if (isKnownSourceImage(tname))
+		std::string fname = tname;
+		std::string::size_type splitter_pos = fname.find('^');
+		if (splitter_pos != std::string::npos)
+			fname.erase(splitter_pos);
+		if (isKnownSourceImage(fname))
 			return getTexture(tname);
 	}
 

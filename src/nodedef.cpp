@@ -686,7 +686,6 @@ static void fillTileAttribs(ITextureSource *tsrc, TileLayer *layer,
 		layer->scale = 1;
 
 	layer->material_texture = tsrc->getMaterialTexture(tiledef.name);
-	layer->flags_texture = tsrc->getShaderFlagsTexture(layer->normal_texture ? true : false);
 
 	// Material flags
 	layer->material_flags = 0;
@@ -737,7 +736,7 @@ static void fillTileAttribs(ITextureSource *tsrc, TileLayer *layer,
 			frame.texture = tsrc->getTextureForMesh(os.str(), &frame.texture_id);
 			if (layer->normal_texture)
 				frame.normal_texture = tsrc->getNormalTexture(os.str());
-			frame.flags_texture = layer->flags_texture;
+			frame.material_texture = tsrc->getMaterialTexture(os.str());
 			(*layer->frames)[i] = frame;
 		}
 	}
