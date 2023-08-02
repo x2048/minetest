@@ -117,9 +117,7 @@ void main(void)
 #else
 	vec4 color = inVertexColor;
 #endif
-	color = pow(color, vec4(2.2));
-
-	color *= pow(emissiveColor, vec4(2.2));
+	color *= emissiveColor;
 
 	// The alpha gives the ratio of sunlight in the incoming light.
 	nightRatio = 1.0 - color.a;
@@ -133,7 +131,7 @@ void main(void)
 	color.b += max(0.0, 0.021 - abs(0.2 * brightness - 0.021) +
 		0.07 * brightness);
 
-	varColor = clamp(color, 0.0, 1.0);
+	varColor = clamp(vec4(pow(color.rgb, vec3(2.2)), color.a), 0.0, 1.0);
 
 
 #ifdef ENABLE_DYNAMIC_SHADOWS
