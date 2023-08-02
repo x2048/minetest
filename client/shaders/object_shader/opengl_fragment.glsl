@@ -449,6 +449,7 @@ void main(void)
 	// Note: clarity = (1 - fogginess)
 	float clarity = clamp(fogShadingParameter
 		- fogShadingParameter * length(eyeVec) / fogDistance, 0.0, 1.0);
+	clarity = 1. - pow(1. - clarity, 2.2);
 	col = mix(skyBgColor, col, clarity);
 	col = vec4(col.rgb, base.a);
 
