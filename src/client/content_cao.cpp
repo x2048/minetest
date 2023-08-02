@@ -1374,12 +1374,14 @@ void GenericCAO::updateTextures(std::string mod)
 					errorstream<<"GenericCAO::updateTextures(): Could not load texture "<<texturestring<<std::endl;
 					continue;
 				}
+				video::ITexture *material_texture = tsrc->getMaterialTexture(texturestring);
 
 				// Set material flags and texture
 				video::SMaterial &material = m_animated_meshnode->getMaterial(i);
 				material.MaterialType = m_material_type;
 				material.MaterialTypeParam = 0.5f;
 				material.TextureLayers[0].Texture = texture;
+				material.TextureLayers[2].Texture = material_texture;
 				material.Lighting = true;
 				material.BackfaceCulling = m_prop.backface_culling;
 

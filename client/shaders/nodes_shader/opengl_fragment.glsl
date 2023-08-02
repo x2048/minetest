@@ -367,7 +367,6 @@ void main(void)
 	vec2 uv = varTexCoord.st;
 
 	vec4 base = texture2D(baseTexture, uv).rgba;
-	vec4 material = texture2D(materialTexture, uv).rgba;
 	// If alpha is zero, we can just discard the pixel. This fixes transparency
 	// on GPUs like GC7000L, where GL_ALPHA_TEST is not implemented in mesa,
 	// and also on GLES 2, where GL_ALPHA_TEST is missing entirely.
@@ -380,6 +379,7 @@ void main(void)
 		discard;
 #endif
 
+	vec4 material = texture2D(materialTexture, uv).rgba;
 	color = base.rgb;
 	vec3 emission = 2. * pow(base.rgb, vec3(2.2)) * material.r;
 	vec4 col = vec4(color.rgb * varColor.rgb, 1.0);
