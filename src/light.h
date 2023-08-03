@@ -80,3 +80,10 @@ inline u8 blend_light(u32 daylight_factor, u8 lightday, u8 lightnight)
 		l = LIGHT_SUN;
 	return l;
 }
+
+class LightDecoder {
+public:
+	inline u8 decode_light(u8 light) {
+		return ::decode_light(light);
+	}
+};
