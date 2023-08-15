@@ -466,4 +466,5 @@ void main(void)
 	color = mix(skyBgColor.rgb, color, clarity);
 
 	gl_FragData[0] = vec4(color, base.a);
+    gl_FragData[1] = vec4(vNormal, base.a);
 }

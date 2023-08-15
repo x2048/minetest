@@ -12,6 +12,9 @@ varying mediump vec2 varTexCoord;
 centroid varying vec2 varTexCoord;
 #endif
 
+varying vec3 eyeVec;
+varying mat4 viewMatrix;
+
 void main(void)
 {
 #ifdef ENABLE_AUTO_EXPOSURE
@@ -22,4 +25,6 @@ void main(void)
 
 	varTexCoord.st = inTexCoord0.st;
 	gl_Position = inVertexPosition;
+	eyeVec = -(mWorldView * inVertexPosition).xyz;
+    viewMatrix = mWorldView;
 }

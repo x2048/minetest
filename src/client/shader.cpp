@@ -325,7 +325,7 @@ public:
 
 			// I don't like using this hardcoded value. maybe something like
 			// MAX_TEXTURE - 1 or somthing like that??
-			s32 TextureLayerID = 3;
+			s32 TextureLayerID = 3;//video::MATERIAL_MAX_TEXTURES - 1;
 			m_shadow_texture.set(&TextureLayerID, services);
 
 			f32 bias0 = shadow->getPerspectiveBiasXY();

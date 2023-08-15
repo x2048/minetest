@@ -952,7 +952,8 @@ void ContentFeatures::updateTextures(ITextureSource *tsrc, IShaderSource *shdsrc
 		}
 	}
 
-	u32 tile_shader = shdsrc->getShader("nodes_shader", material_type, drawtype);
+	// u32 tile_shader = shdsrc->getShader("nodes_shader", material_type, drawtype);
+	u32 tile_shader = is_liquid ? shdsrc->getShader("water_shader", material_type, drawtype) : shdsrc->getShader("nodes_shader", material_type, drawtype);
 
 	MaterialType overlay_material = material_type;
 	if (overlay_material == TILE_MATERIAL_OPAQUE)
@@ -960,7 +961,8 @@ void ContentFeatures::updateTextures(ITextureSource *tsrc, IShaderSource *shdsrc
 	else if (overlay_material == TILE_MATERIAL_LIQUID_OPAQUE)
 		overlay_material = TILE_MATERIAL_LIQUID_TRANSPARENT;
 
-	u32 overlay_shader = shdsrc->getShader("nodes_shader", overlay_material, drawtype);
+	// u32 overlay_shader = shdsrc->getShader("nodes_shader", overlay_material, drawtype);
+	u32 overlay_shader = is_liquid ? shdsrc->getShader("water_shader", overlay_material, drawtype) : shdsrc->getShader("nodes_shader", overlay_material, drawtype);
 	const f32 EMISSION = 1.5f;
 
 	// Tiles (fill in f->tiles[])
@@ -985,7 +987,8 @@ void ContentFeatures::updateTextures(ITextureSource *tsrc, IShaderSource *shdsrc
 		else if (waving == 2)
 			special_material = TILE_MATERIAL_WAVING_LEAVES;
 	}
-	u32 special_shader = shdsrc->getShader("nodes_shader", special_material, drawtype);
+	// u32 special_shader = shdsrc->getShader("nodes_shader", special_material, drawtype);
+    u32 special_shader = is_liquid ? shdsrc->getShader("water_shader", special_material, drawtype) : shdsrc->getShader("nodes_shader", special_material, drawtype);
 
 	// Special tiles (fill in f->special_tiles[])
 	for (u16 j = 0; j < CF_SPECIAL_COUNT; j++) {

@@ -122,6 +122,8 @@ RenderStep *addPostProcessing(RenderPipeline *pipeline, RenderStep *previousStep
 	static const u8 TEXTURE_FXAA = 5;
 	static const u8 TEXTURE_BLOOM_DOWN = 10;
 	static const u8 TEXTURE_BLOOM_UP = 20;
+    static const u8 TEXTURE_NORMAL = 30;
+    static const u8 TEXTURE_WATER_MASK = 40;
 
 	// Super-sampling is simply rendering into a larger texture.
 	// Downscaling is done by the final step when rendering to the screen.
@@ -140,9 +142,11 @@ RenderStep *addPostProcessing(RenderPipeline *pipeline, RenderStep *previousStep
 	buffer->setTexture(TEXTURE_EXPOSURE_1, core::dimension2du(1,1), "exposure_1", color_format, /*clear:*/ true);
 	buffer->setTexture(TEXTURE_EXPOSURE_2, core::dimension2du(1,1), "exposure_2", color_format, /*clear:*/ true);
 	buffer->setTexture(TEXTURE_DEPTH, scale, "3d_depthmap", depth_format);
+	buffer->setTexture(TEXTURE_NORMAL, scale, "3d_normalmap", color_format);
+	buffer->setTexture(TEXTURE_WATER_MASK, scale, "water_mask", color_format);
 
 	// attach buffer to the previous step
-	previousStep->setRenderTarget(pipeline->createOwned<TextureBufferOutput>(buffer, std::vector<u8> { TEXTURE_COLOR }, TEXTURE_DEPTH));
+	previousStep->setRenderTarget(pipeline->createOwned<TextureBufferOutput>(buffer, std::vector<u8> { TEXTURE_COLOR, TEXTURE_NORMAL, TEXTURE_WATER_MASK }, TEXTURE_DEPTH));
 
 	// shared variables
 	u32 shader_id;
@@ -228,7 +232,14 @@ RenderStep *addPostProcessing(RenderPipeline *pipeline, RenderStep *previousStep
 
 	// final merge
 	shader_id = client->getShaderSource()->getShader("second_stage", TILE_MATERIAL_PLAIN, NDT_MESH);
-	PostProcessingStep *effect = pipeline->createOwned<PostProcessingStep>(shader_id, std::vector<u8> { final_stage_source, TEXTURE_BLOOM_UP, TEXTURE_EXPOSURE_2 });
+	PostProcessingStep *effect = pipeline->createOwned<PostProcessingStep>(shader_id, std::vector<u8> {
+        final_stage_source,
+        TEXTURE_BLOOM_UP,
+        TEXTURE_EXPOSURE_2,
+        TEXTURE_DEPTH,
+        TEXTURE_NORMAL,
+        TEXTURE_WATER_MASK
+    });
 	pipeline->addStep(effect);
 	if (enable_ssaa)
 		effect->setBilinearFilter(0, true);
