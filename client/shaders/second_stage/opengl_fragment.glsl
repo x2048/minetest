@@ -16,13 +16,16 @@ uniform sampler2D water_mask;
 
 uniform vec2 texelSize0;
 
+varying float varAnimationTimer;
+
 uniform ExposureParams exposureParams;
 uniform lowp float bloomIntensity;
 uniform lowp float saturation;
 
 uniform vec3 cameraOffset;
-varying vec3 eyeVec;
-varying mat4 viewMatrix;
+uniform vec3 cameraPosition;
+uniform mat4 mCameraViewProj;
+uniform mat4 mCameraViewProjInv;
 
 #ifdef GL_ES
 varying mediump vec2 varTexCoord;
@@ -128,15 +131,15 @@ struct Frame {
     vec3 x, y, z;
 };
 
-const float _MaxDistance = 15.0;
-const float _Step = 0.05;
-const float _Thickness = 0.0006;
-const float _Near = 1.0;
-const float _Far = 1000.0;
+// const float _MaxDistance = 40000.0;
+const float _Thickness = 1e-4;
+const float _Near = 10.0;
+const float _Far = 20000.0;
 
-// mat3 lookMat = inverse(mat3(viewMatrix));
-// Frame _Camera = Frame(-lookMat[0], -lookMat[1], lookMat[2]);
-Frame _Camera = Frame(vec3(1, 0, 0), vec3(0, -1, 0), vec3(0, 0, 1));
+Frame _Camera = Frame((mCameraViewProjInv * vec4(1.,0.,0.,1.)).xyz,
+        (mCameraViewProjInv * vec4(0.,1.,0.,1.)).xyz, 
+        (mCameraViewProjInv * vec4(0.,0.,1.,1.)).xyz);
+// Frame _Camera = Frame(vec3(1, 0, 0), vec3(0, -1, 0), vec3(0, 0, 1));
 
 float map(float value, float min1, float max1, float min2, float max2) {
     return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
@@ -159,52 +162,69 @@ void main(void)
 
     // if (mask == vec4(1.0)) { // This somehow catches the sun color ........... somehow
     if (mask == vec4(1.0, 0.0, 1.0, 1.0)) {
-        float aspect = texelSize0.y / texelSize0.x;
-        vec3 lookDir = normalize(inverse(mat3(viewMatrix)) * vec3(0, 0, 1));
-
-        // View ray
-        vec2 r_uv = 2.0 * gl_FragCoord.xy / (1 / texelSize0.y) - vec2(aspect, 1.0);
-        vec3 r_dir = vec3(r_uv.x * _Camera.x + r_uv.y * _Camera.y + _Near * _Camera.z);
-        Ray ray = Ray(cameraOffset, normalize(r_dir));
-
         float depth = texture2D(depthmap, uv).x;
         vec3 normal = texture2D(normalmap, uv).xyz;
 
-        vec3 view = ray.dir * length(r_dir) * depth * _Far / _Near;
-        vec3 position = ray.origin + view;
-        vec3 reflected = reflect(normalize(view), normal);
+        vec4 position4 = mCameraViewProjInv * vec4(2. * uv - 1., depth, 1.);
+        vec3 position = position4.xyz/position4.w; // world position of the rendered pixel
+        
+        // wave
+        normal = normalize(normal + 
+                0.02 * vec3(
+                        sin(2 * dot(position.xz, vec2(0.15, 0.03)) + varAnimationTimer * 500.),
+                        0.,
+                        sin(2 * dot(position.xz, vec2(0.01, 0.1)) - varAnimationTimer * 500.)));
+        
+        // vectors
+        vec3 view = position - cameraPosition + cameraOffset; // eye-to-pixel ray direction
+        vec3 reflected = normalize(reflect(view, normalize(normal))); // reflected ray direction
 
+        // refraction
+        vec3 refracted = normalize(normalize(view) - 0.1 * normal);
+        vec4 refractedTarget = mCameraViewProj * vec4(position + 5.0 * refracted, 1.0);
+        vec2 refractionUV = 0.5 * refractedTarget.xy / refractedTarget.w + 0.5;
+        float refractionRate = abs(dot(normalize(view), normal));
+
+        // path tracing
         vec2 reflectionUV = uv;
-        float atten = 0.0;
+        float reflectionRate = 0.;
 
         vec3 marchReflection;
         float currentDepth = depth;
+        float _Step = max(2.5, length(view) / 3.); // BS/4
+        float _MaxDistance = 40. * length(view);
         for (float i = _Step; i < _MaxDistance; i += _Step) {
             marchReflection = i * reflected;
-            
-            float targetDepth = dot(view + marchReflection, _Camera.z) / _Far;
-            vec2 target = projectOnScreen(cameraOffset, position + marchReflection);
 
-            target.x = map(target.x, -aspect, aspect, 0.0, 1.0);
-            target.y = map(target.y, -1.0, 1.0, 0.0, 1.0);
+            vec4 target = mCameraViewProj * vec4(position + marchReflection, 1.0);
+            target /= target.w;
+            target.xy = 0.5 * target.xy + 0.5; // xy->uv
 
-            float sampledDepth = texture2D(depthmap, target).x;
-            float depthDiff = sampledDepth - currentDepth;
+            float sampledDepth = texture2D(depthmap, target.xy).x;
+            float targetDepth = target.z;
+            // float depthDiff = sampledDepth - currentDepth;
 
-            if (depthDiff > 0.0 && depthDiff < targetDepth - currentDepth + _Thickness) {
-                reflectionUV = target;
-                atten = 1.0 - i / _MaxDistance;
+			if (sampledDepth < targetDepth + _Thickness) {
+                reflectionUV = target.xy;
+                reflectionRate = (1.0 - i / _MaxDistance) * (1. - pow(length(2. * clamp(target.xy,0.,1.) - 1.), 4.));
                 break;
             }
 
             currentDepth = targetDepth;
-            if (currentDepth > 1.0) {
-                atten = 1.0;
+            if (currentDepth > 0.99) {
+                reflectionRate = 1.0;
+                reflectionUV = target.xy;
                 break;
             }
         }
 
-        gl_FragColor = vec4(texture2D(rendered, reflectionUV).rgb * atten, 1.0);
+		// final calibration. Fresnel equations should be here
+        reflectionRate = (1. - dot(normalize(view), normal)) * (1. - clamp(length(2. * reflectionUV - 1.), 0., 1.));
+        reflectionRate /= reflectionRate + refractionRate;
+
+		// blend
+        vec3 color = mix(0.5 * texture2D(rendered, refractionUV).rgb, texture2D(rendered, reflectionUV).rgb, vec3(reflectionRate));
+        gl_FragColor = vec4(color, 1.0);
 
         return;
     }

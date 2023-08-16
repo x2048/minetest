@@ -2,6 +2,9 @@
 #define exposureMap texture2
 
 uniform sampler2D exposureMap;
+uniform float animationTimer;
+
+varying float varAnimationTimer;
 
 varying float exposure;
 #endif
@@ -12,9 +15,6 @@ varying mediump vec2 varTexCoord;
 centroid varying vec2 varTexCoord;
 #endif
 
-varying vec3 eyeVec;
-varying mat4 viewMatrix;
-
 void main(void)
 {
 #ifdef ENABLE_AUTO_EXPOSURE
@@ -22,9 +22,8 @@ void main(void)
 	exposure = texture2D(exposureMap, vec2(0.5)).r;
 	exposure = pow(2., exposure);
 #endif
+	varAnimationTimer = animationTimer;
 
 	varTexCoord.st = inTexCoord0.st;
 	gl_Position = inVertexPosition;
-	eyeVec = -(mWorldView * inVertexPosition).xyz;
-    viewMatrix = mWorldView;
 }
