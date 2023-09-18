@@ -743,6 +743,7 @@ struct GameRunData {
 	float damage_flash;
 	float update_draw_list_timer;
 	float touch_blocks_timer;
+	float update_shadow_frames_skipped;
 
 	f32 fog_range;
 
@@ -874,7 +875,7 @@ protected:
 			const ItemStack &selected_item, const ItemStack &hand_item, f32 dtime);
 	void updateFrame(ProfilerGraph *graph, RunStats *stats, f32 dtime,
 			const CameraOrientation &cam);
-	void updateShadows();
+	void updateShadows(u8 max_cascades);
 
 	// Misc
 	void showOverlayMessage(const char *msg, float dtime, int percent,
@@ -4166,6 +4167,15 @@ void Game::updateFrame(ProfilerGraph *graph, RunStats *stats, f32 dtime,
 
 	v3f camera_direction = camera->getDirection();
 
+	// Always update cascade 0 and try to update all cascades when camera offset changes or enough frames pass
+	if (RenderingEngine::get_shadow_renderer()) {
+		bool force = (m_camera_offset_changed || runData.update_shadow_frames_skipped > 5);
+		// prioritize shadow frustum update if camera offset changes
+		updateShadows(force ? SHADOW_CASCADES : 1);
+		if (force)
+			runData.update_shadow_frames_skipped = 0;
+	}
+
 	// call only one of updateDrawList, touchMapBlocks, or updateShadow per frame
 	// (the else-ifs below are intentional)
 	if (runData.update_draw_list_timer >= update_draw_list_delta
@@ -4175,11 +4185,15 @@ void Game::updateFrame(ProfilerGraph *graph, RunStats *stats, f32 dtime,
 		runData.update_draw_list_timer = 0;
 		client->getEnv().getClientMap().updateDrawList();
 		runData.update_draw_list_last_cam_dir = camera_direction;
+		runData.update_shadow_frames_skipped++;
 	} else if (runData.touch_blocks_timer > update_draw_list_delta) {
 		client->getEnv().getClientMap().touchMapBlocks();
 		runData.touch_blocks_timer = 0;
+		runData.update_shadow_frames_skipped++;
 	} else if (RenderingEngine::get_shadow_renderer()) {
-		updateShadows();
+		// when we have enough capacity to update shadows more frequently than every 5th frame
+		updateShadows(SHADOW_CASCADES);
+		runData.update_shadow_frames_skipped = 0;
 	}
 
 	m_game_ui->update(*stats, client, draw_control, cam, runData.pointed_old, gui_chat_console, dtime);
@@ -4275,7 +4289,7 @@ inline void Game::updateProfilerGraphs(ProfilerGraph *graph)
 /****************************************************************************
  * Shadows
  *****************************************************************************/
-void Game::updateShadows()
+void Game::updateShadows(u8 max_cascades)
 {
 	ShadowRenderer *shadow = RenderingEngine::get_shadow_renderer();
 	if (!shadow)
@@ -4298,7 +4312,7 @@ void Game::updateShadows()
 	shadow->getDirectionalLight().setDirection(sun_pos);
 	shadow->setTimeOfDay(in_timeofday);
 
-	shadow->getDirectionalLight().update_frustum(camera, client, m_camera_offset_changed);
+	shadow->getDirectionalLight().update_frustum(camera, client, m_camera_offset_changed, max_cascades);
 }
 
 /****************************************************************************
