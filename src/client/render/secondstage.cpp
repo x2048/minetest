@@ -148,7 +148,7 @@ RenderStep *addPostProcessing(RenderPipeline *pipeline, RenderStep *previousStep
 	u32 shader_id;
 
 	// Number of mipmap levels of the bloom downsampling texture
-	const u8 MIPMAP_LEVELS = 4;
+	const u8 MIPMAP_LEVELS = 8;
 
 
 	// post-processing stage
