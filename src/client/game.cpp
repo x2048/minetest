@@ -405,6 +405,8 @@ class GameGlobalShaderConstantSetter : public IShaderConstantSetter
 	CachedPixelShaderSetting<float> m_sun_brightness_pixel;
 	CachedPixelShaderSetting<float, 3> m_moon_position_pixel;
 	CachedPixelShaderSetting<float> m_moon_brightness_pixel;
+	CachedPixelShaderSetting<float> m_emission_pixel;
+	float emission;
 
 public:
 	void onSettingsChange(const std::string &name)
@@ -466,7 +468,8 @@ public:
 		m_sun_position_pixel("sunPositionScreen"),
 		m_sun_brightness_pixel("sunBrightness"),
 		m_moon_position_pixel("moonPositionScreen"),
-		m_moon_brightness_pixel("moonBrightness")
+		m_moon_brightness_pixel("moonBrightness"),
+		m_emission_pixel("emission")
 	{
 		g_settings->registerChangedCallback("enable_fog", settingsCallback, this);
 		g_settings->registerChangedCallback("exposure_compensation", settingsCallback, this);
@@ -629,6 +632,8 @@ public:
 			float moon_brightness = 0.f;
 			m_moon_brightness_pixel.set(&moon_brightness, services);
 		}
+
+		m_emission_pixel.set(&emission, services);
 	}
 
 	void onSetMaterial(const video::SMaterial &material) override
@@ -643,6 +648,7 @@ public:
 			m_texel_size0_values[0] = 0.f;
 			m_texel_size0_values[1] = 0.f;
 		}
+		emission = material.Shininess;
 	}
 };
 

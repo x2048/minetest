@@ -5,6 +5,7 @@ uniform vec4 skyBgColor;
 uniform float fogDistance;
 uniform float fogShadingParameter;
 uniform vec3 eyePosition;
+uniform float emission;
 
 // The cameraOffset is the current center of the visible world.
 uniform vec3 cameraOffset;
@@ -442,6 +443,17 @@ void main(void)
 #endif
 
 	color.rgb *= artificialColor + naturalLight * dayLight;
+	
+	float final_emission = emission;
+	if (final_emission * 1.0 != final_emission || final_emission <= 1.0)
+		final_emission = 1.0;
+
+	color = pow(color, vec3(2.2));
+	const float emission_strength = 4.0;
+	const vec3 luminanceFactors = vec3(0.213, 0.715, 0.072);
+	color *= (1. + pow(dot(color, luminanceFactors), 3.0) * emission_strength * (max(0., final_emission - 1.0)));
+	color = pow(color, vec3(1./2.2));
+	vec4 col = vec4(color, 1.0);
 
 	// Due to a bug in some (older ?) graphics stacks (possibly in the glsl compiler ?),
 	// the fog will only be rendered correctly if the last operation before the
